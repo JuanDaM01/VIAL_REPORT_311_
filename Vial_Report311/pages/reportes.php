@@ -24,6 +24,7 @@
           <th>Reporte</th>
           <th>Categoría</th>
           <th>Estado</th>
+          <th>Votos</th>
           <th>Prioridad</th>
           <th>Proveedor</th>
           <th>Ciudadano</th>
@@ -32,9 +33,10 @@
           <th>Acciones</th>
         </tr>
       </thead>
+
       <tbody id="tbody">
         <tr class="empty-row">
-          <td colspan="10">Cargando...</td>
+          <td colspan="11">Cargando...</td>
         </tr>
       </tbody>
     </table>
@@ -171,7 +173,7 @@ let catalogos = {
 };
 
 function escapeHtml(valor) {
-  if (valor === null || valor === undefined) return '—';
+  if (valor === null || valor === undefined || valor === '') return '—';
 
   return String(valor)
     .replaceAll('&', '&amp;')
@@ -285,13 +287,13 @@ async function cargar() {
   const tbody = document.getElementById('tbody');
 
   if (!res.ok || data.error) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">Error al cargar reportes.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">Error al cargar reportes.</td></tr>';
     toast(data.error ?? 'Error al cargar reportes', false);
     return;
   }
 
   if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">No hay reportes registrados.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No hay reportes registrados.</td></tr>';
     return;
   }
 
@@ -319,6 +321,12 @@ async function cargar() {
         <td>
           <span class="badge badge-${escapeHtml(r.estado)}">
             ${escapeHtml(textoEstado(r.estado))}
+          </span>
+        </td>
+
+        <td>
+          <span class="badge badge-en_proceso">
+            ${escapeHtml(r.voto ?? 0)}
           </span>
         </td>
 

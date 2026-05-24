@@ -8,32 +8,16 @@ $current = basename($_SERVER['PHP_SELF'], '.php');
   <div class="nav-links">
     <a href="../index.php" class="<?= $current === 'index' ? 'active' : '' ?>">Inicio</a>
 
-    <a href="usuarios.php" class="<?= $current === 'usuarios' ? 'active' : '' ?>">
-      👤 Usuarios
-    </a>
-
-    <a href="reportes.php" class="<?= $current === 'reportes' ? 'active' : '' ?>">
-      📋 Reportes
-    </a>
-
-    <a href="tickets.php" class="<?= $current === 'tickets' ? 'active' : '' ?>">
-      🎫 Tickets
-    </a>
-
-    <a href="proveedores.php" class="<?= $current === 'proveedores' ? 'active' : '' ?>">
-      🏢 Proveedores
-    </a>
-
-    <a href="categorias.php" class="<?= $current === 'categorias' ? 'active' : '' ?>">
-      🏷 Categorías
-    </a>
-
-    <a href="ubicaciones.php" class="<?= $current === 'ubicaciones' ? 'active' : '' ?>">
-      📍 Ubicaciones
-    </a>
-
-    <a href="notificaciones.php" class="<?= $current === 'notificaciones' ? 'active' : '' ?>">
-      🔔 Notificaciones
-    </a>
+    <a href="usuarios.php" class="<?= $current === 'usuarios' ? 'active' : '' ?>">👤 Usuarios</a>
+    <a href="reportes.php" class="<?= $current === 'reportes' ? 'active' : '' ?>">📋 Reportes</a>
+    <a href="tickets.php" class="<?= $current === 'tickets' ? 'active' : '' ?>">🎫 Tickets</a>
+    <a href="proveedores.php" class="<?= $current === 'proveedores' ? 'active' : '' ?>">🏢 Proveedores</a>
+    <a href="categorias.php" class="<?= $current === 'categorias' ? 'active' : '' ?>">🏷 Categorías</a>
+    <a href="ubicaciones.php" class="<?= $current === 'ubicaciones' ? 'active' : '' ?>">📍 Ubicaciones</a>
+    <a href="comentarios.php" class="<?= $current === 'comentarios' ? 'active' : '' ?>">💬 Comentarios</a>
+    <a href="evidencias.php" class="<?= $current === 'evidencias' ? 'active' : '' ?>">📎 Evidencias</a>
+    <a href="alertas.php" class="<?= $current === 'alertas' ? 'active' : '' ?>">🚨 Alertas</a>
+    <a href="votaciones.php" class="<?= $current === 'votaciones' ? 'active' : '' ?>">👍 Votaciones</a>
+    <a href="notificaciones.php" class="<?= $current === 'notificaciones' ? 'active' : '' ?>">🔔 Notificaciones</a>
   </div>
 </nav>
