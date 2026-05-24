@@ -3,7 +3,7 @@
 // Ajusta estos valores según tu instalación de MySQL/MariaDB
 
 define('DB_HOST', 'localhost');
-define('DB_PORT', '3306');
+define('DB_PORT', '3307');
 define('DB_NAME', 'vialreport311');
 define('DB_USER', 'root');       // Cambia por tu usuario
 define('DB_PASS', '');           // Cambia por tu contraseña
