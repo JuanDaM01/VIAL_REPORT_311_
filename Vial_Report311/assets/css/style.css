@@ -1,0 +1,147 @@
+/* ============================================================
+   VialReport311 — Estilos globales
+   ============================================================ */
+:root {
+  --bg:       #0d0f14;
+  --surface:  #161920;
+  --surface2: #1e2230;
+  --border:   #2a2f42;
+  --accent:   #f5a623;
+  --text:     #e8eaf0;
+  --muted:    #7a8099;
+  --ok:       #2ecc71;
+  --danger:   #e74c3c;
+  --info:     #3498db;
+  --warn:     #f39c12;
+  --radius:   10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.navbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 58px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.brand { font-size: 1.25rem; font-weight: 800; color: var(--text); text-decoration: none; }
+.brand span { color: var(--accent); }
+.nav-links { display: flex; gap: 1rem; }
+.nav-links a {
+  color: var(--muted); text-decoration: none; font-size: .9rem;
+  padding: 6px 14px; border-radius: 6px; transition: all .2s;
+}
+.nav-links a:hover, .nav-links a.active {
+  color: var(--text); background: var(--surface2);
+}
+.nav-links a.active { border-bottom: 2px solid var(--accent); border-radius: 6px 6px 0 0; }
+
+/* ── Page layout ──────────────────────────────────────────── */
+.page { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.page-header h2 { font-size: 1.6rem; font-weight: 700; }
+.page-header h2 span { color: var(--accent); }
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.hero { display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 1.5rem; padding: 5rem 2rem; text-align: center; }
+.hero h1 { font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; line-height: 1.15; }
+.hero h1 span { color: var(--accent); }
+.hero p { color: var(--muted); font-size: 1.05rem; max-width: 500px; line-height: 1.7; }
+.hero-cards { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+.hero-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.6rem 2rem; min-width: 170px; text-align: center;
+  transition: border-color .2s; cursor: default;
+}
+.hero-card:hover { border-color: var(--accent); }
+.hero-card .ico { font-size: 2rem; display: block; margin-bottom: .5rem; }
+.hero-card .lbl { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn { border: none; border-radius: 8px; cursor: pointer; font-size: .88rem; font-weight: 500; padding: .55rem 1.2rem; transition: opacity .2s; }
+.btn-primary  { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: .85; }
+.btn-ghost    { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); }
+.btn-edit     { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 10px; font-size: .78rem; cursor: pointer; }
+.btn-edit:hover { background: rgba(245,166,35,.12); }
+.btn-del      { background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 6px; padding: 3px 10px; font-size: .78rem; cursor: pointer; }
+.btn-del:hover { background: rgba(231,76,60,.12); }
+
+/* ── Table ────────────────────────────────────────────────── */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--surface2); }
+th { padding: .75rem 1rem; font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; text-align: left; border-bottom: 1px solid var(--border); }
+td { padding: .78rem 1rem; font-size: .87rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,.02); }
+.td-acc { display: flex; gap: 6px; align-items: center; }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .73rem; font-weight: 500; }
+.badge-recibido  { background: rgba(122,128,153,.2); color: #9aa0b8; }
+.badge-en_proceso{ background: rgba(243,156,18,.15);  color: var(--warn); }
+.badge-resuelto  { background: rgba(46,204,113,.15);  color: var(--ok); }
+.badge-rechazado { background: rgba(231,76,60,.15);   color: var(--danger); }
+.badge-local     { background: rgba(122,128,153,.2);  color: var(--muted); }
+.badge-google    { background: rgba(66,133,244,.15);  color: #4285f4; }
+.badge-facebook  { background: rgba(59,89,152,.2);    color: #7289da; }
+.badge-activo    { background: rgba(46,204,113,.15);  color: var(--ok); }
+.badge-inactivo  { background: rgba(231,76,60,.15);   color: var(--danger); }
+.badge-anonimo   { background: rgba(52,152,219,.15);  color: var(--info); }
+
+/* ── Toast ────────────────────────────────────────────────── */
+#toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: .7rem 1.2rem;
+         border-radius: 8px; font-size: .88rem; font-weight: 500; z-index: 999;
+         transition: opacity .3s; opacity: 0; pointer-events: none; }
+#toast.show { opacity: 1; }
+#toast.ok  { background: rgba(46,204,113,.15); color: var(--ok);    border: 1px solid rgba(46,204,113,.3); }
+#toast.err { background: rgba(231,76,60,.15);  color: var(--danger); border: 1px solid rgba(231,76,60,.3); }
+
+/* ── Modal ────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; z-index: 200;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; width: 580px; max-width: 96vw; max-height: 92vh; overflow-y: auto;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between;
+              padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); }
+.modal-head h3 { font-size: 1.1rem; font-weight: 700; }
+.modal-head button { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.modal-head button:hover { background: var(--surface2); color: var(--text); }
+.modal-body { padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: .9rem; }
+.modal-foot { display: flex; justify-content: flex-end; gap: .8rem;
+              padding: 1rem 1.5rem; border-top: 1px solid var(--border); }
+
+/* ── Form ─────────────────────────────────────────────────── */
+.form-row { display: flex; gap: 1rem; }
+.form-row .form-group { flex: 1; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: .8rem; color: var(--muted); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: .88rem; padding: .5rem .75rem; outline: none;
+  transition: border-color .2s; width: 100%; resize: vertical;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); }
+.form-group select option { background: var(--surface2); }
+.check-row { display: flex; align-items: center; gap: 8px; }
+.check-row input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+.check-row label { font-size: .88rem; color: var(--text); }
+
+/* ── Misc ─────────────────────────────────────────────────── */
+.text-muted { color: var(--muted); font-size: .82rem; }
+.empty-row td { text-align: center; color: var(--muted); padding: 2.5rem; }
