@@ -1,41 +1,59 @@
 <?php
 // pages/navbar.php
-// Navbar principal — rutas absolutas vía BASE_URL (fix 404)
-// Incluye agrupación visual por principios Gestalt
+// Navbar principal — rutas absolutas vía BASE_URL
+// Con control de sesión y filtrado por rol
 
-require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/session.php';
 
-$current = basename($_SERVER['PHP_SELF'], '.php');
+$current  = basename($_SERVER['PHP_SELF'], '.php');
+$logueado = estaLogueado();
+$rol      = rolActual();   // ciudadano | funcionario | administrador | ''
+$usuario  = usuarioSesion();
 
-$grupos = [
-    [
-        'label' => 'Comunidad',
-        'items' => [
-            ['url' => URL_HOME,         'slug' => 'index',         'icon' => 'home',       'label' => 'Inicio'],
-            ['url' => URL_USUARIOS,     'slug' => 'usuarios',      'icon' => 'users',      'label' => 'Usuarios'],
-            ['url' => URL_REPORTES,     'slug' => 'reportes',      'icon' => 'flag',       'label' => 'Reportes'],
-            ['url' => URL_VOTACIONES,   'slug' => 'votaciones',    'icon' => 'thumbs-up',  'label' => 'Votaciones'],
-        ],
-    ],
-    [
-        'label' => 'Operaciones',
-        'items' => [
-            ['url' => URL_TICKETS,      'slug' => 'tickets',       'icon' => 'ticket',     'label' => 'Tickets'],
-            ['url' => URL_PROVEEDORES,  'slug' => 'proveedores',   'icon' => 'building',   'label' => 'Proveedores'],
-            ['url' => URL_EVIDENCIAS,   'slug' => 'evidencias',    'icon' => 'paperclip',  'label' => 'Evidencias'],
-            ['url' => URL_COMENTARIOS,  'slug' => 'comentarios',   'icon' => 'message',    'label' => 'Comentarios'],
-        ],
-    ],
-    [
-        'label' => 'Configuración',
-        'items' => [
-            ['url' => URL_CATEGORIAS,   'slug' => 'categorias',    'icon' => 'tag',        'label' => 'Categorías'],
-            ['url' => URL_UBICACIONES,  'slug' => 'ubicaciones',   'icon' => 'map-pin',    'label' => 'Ubicaciones'],
-            ['url' => URL_ALERTAS,      'slug' => 'alertas',       'icon' => 'bell-ring',  'label' => 'Alertas'],
-            ['url' => URL_NOTIFICACIONES,'slug' => 'notificaciones','icon' => 'bell',       'label' => 'Notificaciones'],
-        ],
+// ── Grupos por rol ─────────────────────────────────────────
+// URL de inicio según rol
+$urlInicio = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
+$slugInicio = ($rol === 'administrador') ? 'index' : 'reportes';
+
+// Todos ven Inicio y Reportes públicos
+$gruposComun = [
+    'label' => 'Comunidad',
+    'items' => [
+        ['url' => $urlInicio,       'slug' => $slugInicio, 'icon' => 'home',      'label' => 'Inicio'],
+        ['url' => URL_REPORTES,    'slug' => 'reportes', 'icon' => 'flag',      'label' => 'Reportes'],
+        ['url' => URL_VOTACIONES,  'slug' => 'votaciones','icon'=> 'thumbs-up', 'label' => 'Votaciones'],
+        ['url' => URL_COMENTARIOS, 'slug' => 'comentarios','icon'=>'message',   'label' => 'Comentarios'],
     ],
 ];
+
+$gruposOperaciones = [
+    'label' => 'Operaciones',
+    'items' => [
+        ['url' => URL_TICKETS,     'slug' => 'tickets',   'icon' => 'ticket',    'label' => 'Tickets'],
+        ['url' => URL_EVIDENCIAS,  'slug' => 'evidencias','icon' => 'paperclip', 'label' => 'Evidencias'],
+    ],
+];
+
+$gruposAdmin = [
+    'label' => 'Administración',
+    'items' => [
+        ['url' => URL_USUARIOS,    'slug' => 'usuarios',    'icon' => 'users',    'label' => 'Usuarios'],
+        ['url' => URL_PROVEEDORES, 'slug' => 'proveedores', 'icon' => 'building', 'label' => 'Proveedores'],
+        ['url' => URL_CATEGORIAS,  'slug' => 'categorias',  'icon' => 'tag',      'label' => 'Categorías'],
+        ['url' => URL_UBICACIONES, 'slug' => 'ubicaciones', 'icon' => 'map-pin',  'label' => 'Ubicaciones'],
+        ['url' => URL_ALERTAS,     'slug' => 'alertas',     'icon' => 'bell-ring','label' => 'Alertas'],
+        ['url' => URL_NOTIFICACIONES,'slug'=>'notificaciones','icon'=>'bell',      'label' => 'Notificaciones'],
+    ],
+];
+
+// Armar lista de grupos visible según rol
+$grupos = [$gruposComun];
+if (in_array($rol, ['funcionario','administrador'])) {
+    $grupos[] = $gruposOperaciones;
+}
+if ($rol === 'administrador') {
+    $grupos[] = $gruposAdmin;
+}
 
 // Iconos SVG inline (no dependen de CDN — soluciona el problema de iconos que no cargan)
 $svgIcons = [
@@ -88,8 +106,81 @@ $svgIcons = [
         </div>
       </div>
     <?php endforeach; ?>
+
+    <!-- ── Usuario / Sesión ── -->
+    <div class="nav-group nav-group-session">
+      <span class="nav-group-label">Sesión</span>
+      <div class="nav-group-items">
+
+        <?php if ($logueado): ?>
+
+          <!-- Badge de rol -->
+          <span class="nav-badge-rol badge badge-<?= htmlspecialchars($rol) ?>">
+            <?= ucfirst(htmlspecialchars($rol)) ?>
+          </span>
+
+          <!-- Nombre usuario -->
+          <span class="nav-user" title="<?= htmlspecialchars($usuario['email']) ?>">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <?= htmlspecialchars(mb_strimwidth($usuario['nombre'], 0, 18, '…')) ?>
+          </span>
+
+          <!-- Logout -->
+          <a href="<?= BASE_URL ?>/auth/logout.php" class="nav-link nav-logout" title="Cerrar sesión">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Salir</span>
+          </a>
+
+        <?php else: ?>
+
+          <a href="<?= BASE_URL ?>/auth/login.php" class="nav-link <?= $current==='login'?'active':'' ?>" title="Iniciar sesión">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span>Entrar</span>
+          </a>
+
+          <a href="<?= BASE_URL ?>/auth/registro.php" class="nav-link nav-reg <?= $current==='registro'?'active':'' ?>" title="Crear cuenta">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span>Registro</span>
+          </a>
+
+        <?php endif; ?>
+      </div>
+    </div>
+
   </div>
 </nav>
+
+<style>
+  .nav-user {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+    padding: 6px 8px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-user svg { flex-shrink: 0; opacity: .7; }
+  .nav-badge-rol {
+    font-size: .65rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .nav-logout { color: var(--danger) !important; }
+  .nav-logout:hover { background: rgba(231,76,60,.08) !important; }
+  .nav-reg { color: var(--accent) !important; }
+  .nav-reg:hover { background: rgba(245,166,35,.08) !important; }
+  .nav-group-session { margin-left: auto; border-left: 1px solid var(--border); border-right: none; }
+  @media (max-width: 900px) {
+    .nav-group-session { margin-left: 0; border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
 
 <script>
 (function () {

@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../config/session.php'; requireRole(); ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>

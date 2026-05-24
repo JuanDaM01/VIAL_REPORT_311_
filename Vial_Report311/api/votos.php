@@ -67,7 +67,7 @@ function existeVoto(PDO $pdo, int $idUsuario, int $idReporte): bool
 function actualizarContadorVotos(PDO $pdo, int $idReporte): void
 {
     $sql = "UPDATE reporte
-            SET voto = (
+            SET totalVotos = (
                 SELECT COUNT(*)
                 FROM votar
                 WHERE votar.idReporte = reporte.idReporte
@@ -116,7 +116,7 @@ try {
 
                         r.titulo AS reporte,
                         r.estado AS estadoReporte,
-                        r.voto AS totalVotosReporte,
+                        r.totalVotos AS totalVotosReporte,
 
                         c.nombre AS categoria,
 

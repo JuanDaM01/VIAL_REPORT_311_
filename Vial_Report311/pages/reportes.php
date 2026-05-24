@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../config/session.php'; requireRole(); ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,6 +6,127 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Reportes — VialReport311</title>
   <link rel="stylesheet" href="../assets/css/style.css"/>
+  <style>
+    /* ── Combobox Ubicación ── */
+    .combobox-wrap {
+      position: relative;
+    }
+    .combobox-wrap input[type="text"] {
+      width: 100%;
+      padding: .55rem .75rem;
+      padding-right: 2.2rem;
+      font-size: .9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .combobox-wrap input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245,166,35,.12);
+    }
+    .combobox-wrap input[type="text"]::placeholder {
+      color: var(--muted);
+    }
+    .combobox-toggle {
+      position: absolute;
+      right: .5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      transition: transform .2s, color .15s;
+    }
+    .combobox-toggle.open {
+      transform: translateY(-50%) rotate(180deg);
+    }
+    .combobox-toggle:hover { color: var(--text2); }
+    .combobox-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      z-index: 100;
+      display: none;
+    }
+    .combobox-dropdown.open {
+      display: block;
+      animation: cbSlide .15s ease;
+    }
+    @keyframes cbSlide {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .combobox-option {
+      padding: .5rem .75rem;
+      font-size: .85rem;
+      cursor: pointer;
+      transition: background .12s;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    .combobox-option:last-child { border-bottom: none; }
+    .combobox-option:hover,
+    .combobox-option.highlighted {
+      background: rgba(245,166,35,.1);
+    }
+    .combobox-option.selected {
+      background: rgba(245,166,35,.15);
+      font-weight: 600;
+    }
+    .combobox-empty {
+      padding: .6rem .75rem;
+      font-size: .82rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .combobox-new-hint {
+      padding: .5rem .75rem;
+      font-size: .8rem;
+      color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      transition: background .12s;
+    }
+    .combobox-new-hint:hover {
+      background: rgba(245,166,35,.08);
+    }
+    .combobox-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      margin-top: .3rem;
+      font-size: .72rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .combobox-badge.existing {
+      background: rgba(39,174,96,.12);
+      color: var(--ok);
+    }
+    .combobox-badge.new-loc {
+      background: rgba(245,166,35,.12);
+      color: var(--accent);
+    }
+  </style>
 </head>
 <body>
 
@@ -72,7 +194,15 @@
 
         <div class="form-group">
           <label>Ubicación *</label>
-          <select id="idUbicacion"></select>
+          <div class="combobox-wrap" id="ubicacionCombobox">
+            <input type="text" id="ubicacionInput" placeholder="Buscar o escribir nueva ubicación..." autocomplete="off"/>
+            <input type="hidden" id="idUbicacion" value=""/>
+            <button type="button" class="combobox-toggle" id="ubicacionToggle">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="combobox-dropdown" id="ubicacionDropdown"></div>
+            <div id="ubicacionBadge"></div>
+          </div>
         </div>
       </div>
 
@@ -237,15 +367,165 @@ function llenarSelectCategorias() {
     `).join('');
 }
 
-function llenarSelectUbicaciones() {
-  const select = document.getElementById('idUbicacion');
+// ── Combobox Ubicación ──────────────────────────────────────
+let ubicacionSeleccionada = null; // { idUbicacion, texto } o null (nueva)
+let ubicacionTextoNuevo = '';     // texto libre si es nueva
+let cbHighlightIdx = -1;
 
-  select.innerHTML = '<option value="">Seleccione una ubicación</option>' +
-    catalogos.ubicaciones.map(u => `
-      <option value="${u.idUbicacion}">
-        ${escapeHtml(textoUbicacion(u))}
-      </option>
-    `).join('');
+function initComboboxUbicacion() {
+  const input    = document.getElementById('ubicacionInput');
+  const hidden   = document.getElementById('idUbicacion');
+  const dropdown = document.getElementById('ubicacionDropdown');
+  const toggle   = document.getElementById('ubicacionToggle');
+  const badge    = document.getElementById('ubicacionBadge');
+
+  function getOpciones(filtro) {
+    const f = (filtro || '').toLowerCase();
+    return catalogos.ubicaciones
+      .map(u => ({ id: u.idUbicacion, texto: textoUbicacion(u) }))
+      .filter(o => !f || o.texto.toLowerCase().includes(f));
+  }
+
+  function renderDropdown(filtro) {
+    const opciones = getOpciones(filtro);
+    const f = (filtro || '').trim();
+    let html = '';
+
+    if (opciones.length === 0 && !f) {
+      html = '<div class="combobox-empty">No hay ubicaciones registradas</div>';
+    } else {
+      opciones.forEach((o, i) => {
+        const selClass = (ubicacionSeleccionada && ubicacionSeleccionada.idUbicacion === o.id) ? ' selected' : '';
+        const hiClass = (i === cbHighlightIdx) ? ' highlighted' : '';
+        html += `<div class="combobox-option${selClass}${hiClass}" data-id="${o.id}" data-idx="${i}">${escapeHtml(o.texto)}</div>`;
+      });
+    }
+
+    // Si hay texto y no coincide exactamente con ninguna opción, mostrar hint de "crear nueva"
+    if (f && !opciones.some(o => o.texto.toLowerCase() === f.toLowerCase())) {
+      html += `<div class="combobox-new-hint" id="cbCrearNueva">＋ Crear nueva ubicación: "${escapeHtml(f)}"</div>`;
+    }
+
+    dropdown.innerHTML = html;
+
+    // Event listeners para opciones
+    dropdown.querySelectorAll('.combobox-option').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = Number(el.dataset.id);
+        const opt = opciones.find(o => o.id === id);
+        seleccionar(opt);
+      });
+    });
+
+    const crearBtn = dropdown.querySelector('#cbCrearNueva');
+    if (crearBtn) {
+      crearBtn.addEventListener('click', () => {
+        usarNueva(f);
+      });
+    }
+  }
+
+  function seleccionar(opt) {
+    ubicacionSeleccionada = { idUbicacion: opt.id, texto: opt.texto };
+    ubicacionTextoNuevo = '';
+    input.value = opt.texto;
+    hidden.value = opt.id;
+    badge.innerHTML = '<span class="combobox-badge existing">✓ Ubicación existente</span>';
+    cerrarDropdown();
+  }
+
+  function usarNueva(texto) {
+    ubicacionSeleccionada = null;
+    ubicacionTextoNuevo = texto;
+    input.value = texto;
+    hidden.value = '';
+    badge.innerHTML = '<span class="combobox-badge new-loc">＋ Se creará nueva ubicación</span>';
+    cerrarDropdown();
+  }
+
+  function abrirDropdown() {
+    cbHighlightIdx = -1;
+    renderDropdown(input.value);
+    dropdown.classList.add('open');
+    toggle.classList.add('open');
+  }
+
+  function cerrarDropdown() {
+    dropdown.classList.remove('open');
+    toggle.classList.remove('open');
+    cbHighlightIdx = -1;
+  }
+
+  function esAbierto() {
+    return dropdown.classList.contains('open');
+  }
+
+  // Eventos
+  input.addEventListener('focus', abrirDropdown);
+  input.addEventListener('input', () => {
+    cbHighlightIdx = -1;
+    renderDropdown(input.value);
+    if (!esAbierto()) abrirDropdown();
+
+    // Si el usuario borra todo, limpiar selección
+    if (!input.value.trim()) {
+      ubicacionSeleccionada = null;
+      ubicacionTextoNuevo = '';
+      hidden.value = '';
+      badge.innerHTML = '';
+    }
+  });
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (esAbierto()) cerrarDropdown();
+    else abrirDropdown();
+  });
+
+  // Cerrar al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#ubicacionCombobox')) {
+      cerrarDropdown();
+      // Si quedó texto sin seleccionar, tratarlo como nueva
+      const val = input.value.trim();
+      if (val && !ubicacionSeleccionada) {
+        usarNueva(val);
+      }
+    }
+  });
+
+  // Navegación con teclado
+  input.addEventListener('keydown', (e) => {
+    const opciones = dropdown.querySelectorAll('.combobox-option');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!esAbierto()) abrirDropdown();
+      cbHighlightIdx = Math.min(cbHighlightIdx + 1, opciones.length - 1);
+      renderDropdown(input.value);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      cbHighlightIdx = Math.max(cbHighlightIdx - 1, 0);
+      renderDropdown(input.value);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (cbHighlightIdx >= 0 && cbHighlightIdx < opciones.length) {
+        opciones[cbHighlightIdx].click();
+      } else {
+        const val = input.value.trim();
+        if (val && !ubicacionSeleccionada) {
+          usarNueva(val);
+        }
+        cerrarDropdown();
+      }
+    } else if (e.key === 'Escape') {
+      cerrarDropdown();
+    }
+  });
+}
+
+function llenarSelectUbicaciones() {
+  // Inicializar combobox (se ejecuta después de cargar catálogos)
+  initComboboxUbicacion();
 }
 
 function llenarSelectCiudadanos() {
@@ -326,7 +606,7 @@ async function cargar() {
 
         <td>
           <span class="badge badge-en_proceso">
-            ${escapeHtml(r.voto ?? 0)}
+            ${escapeHtml(r.totalVotos ?? 0)}
           </span>
         </td>
 
@@ -358,6 +638,10 @@ function abrirModal() {
   document.getElementById('descripcion').value = '';
   document.getElementById('idCategoria').value = '';
   document.getElementById('idUbicacion').value = '';
+  document.getElementById('ubicacionInput').value = '';
+  document.getElementById('ubicacionBadge').innerHTML = '';
+  ubicacionSeleccionada = null;
+  ubicacionTextoNuevo = '';
   document.getElementById('estado').value = 'recibido';
   document.getElementById('prioridad').value = '';
   document.getElementById('idUsuario').value = '';
@@ -388,7 +672,25 @@ async function editar(id) {
   document.getElementById('titulo').value = r.titulo ?? '';
   document.getElementById('descripcion').value = r.descripcion ?? '';
   document.getElementById('idCategoria').value = r.idCategoria ?? '';
+
+  // Restaurar ubicación en el combobox
   document.getElementById('idUbicacion').value = r.idUbicacion ?? '';
+  if (r.idUbicacion) {
+    const ubMatch = catalogos.ubicaciones.find(u => u.idUbicacion == r.idUbicacion);
+    if (ubMatch) {
+      const textoUb = textoUbicacion(ubMatch);
+      document.getElementById('ubicacionInput').value = textoUb;
+      ubicacionSeleccionada = { idUbicacion: r.idUbicacion, texto: textoUb };
+      ubicacionTextoNuevo = '';
+      document.getElementById('ubicacionBadge').innerHTML = '<span class="combobox-badge existing">✓ Ubicación existente</span>';
+    }
+  } else {
+    document.getElementById('ubicacionInput').value = '';
+    ubicacionSeleccionada = null;
+    ubicacionTextoNuevo = '';
+    document.getElementById('ubicacionBadge').innerHTML = '';
+  }
+
   document.getElementById('estado').value = r.estado ?? 'recibido';
   document.getElementById('prioridad').value = r.prioridad ?? '';
   document.getElementById('idUsuario').value = r.idUsuario ?? '';
@@ -432,8 +734,8 @@ function validarFormulario(body) {
     return false;
   }
 
-  if (!body.idUbicacion) {
-    toast('Debe seleccionar una ubicación', false);
+  if (!body.idUbicacion && !ubicacionTextoNuevo) {
+    toast('Debe seleccionar o escribir una ubicación', false);
     return false;
   }
 
@@ -449,6 +751,64 @@ async function guardar() {
   const id = document.getElementById('rid').value;
   const esAnonimo = document.getElementById('esAnonimo').checked ? 1 : 0;
 
+  // Validar que haya ubicación antes de proceder
+  let idUbicacionFinal = document.getElementById('idUbicacion').value
+    ? Number(document.getElementById('idUbicacion').value)
+    : null;
+
+  if (!idUbicacionFinal && !ubicacionTextoNuevo) {
+    toast('Debe seleccionar o escribir una ubicación', false);
+    return;
+  }
+
+  // Validaciones rápidas antes de crear la ubicación
+  if (!document.getElementById('titulo').value.trim()) {
+    toast('El título es obligatorio', false);
+    return;
+  }
+  if (!document.getElementById('idCategoria').value) {
+    toast('Debe seleccionar una categoría', false);
+    return;
+  }
+
+  // Resolver ubicación: si es nueva, crearla primero
+
+  if (!idUbicacionFinal && ubicacionTextoNuevo) {
+    // Crear nueva ubicación via API
+    try {
+      const resUb = await fetch('../api/ubicaciones.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ciudad: ubicacionTextoNuevo,
+          direccionTexto: ubicacionTextoNuevo
+        })
+      });
+      const dataUb = await resUb.json();
+
+      if (!resUb.ok || dataUb.error) {
+        toast(dataUb.error ?? 'No se pudo crear la ubicación', false);
+        return;
+      }
+
+      idUbicacionFinal = dataUb.idUbicacion;
+
+      // Actualizar catálogos para que la nueva ubicación quede disponible
+      catalogos.ubicaciones.push({
+        idUbicacion: idUbicacionFinal,
+        ciudad: ubicacionTextoNuevo,
+        direccionTexto: ubicacionTextoNuevo,
+        barrio: null,
+        departamento: null
+      });
+
+      toast('Nueva ubicación creada automáticamente', true);
+    } catch (err) {
+      toast('Error al crear la ubicación: ' + err.message, false);
+      return;
+    }
+  }
+
   const body = {
     titulo: document.getElementById('titulo').value.trim(),
     descripcion: document.getElementById('descripcion').value.trim(),
@@ -459,9 +819,7 @@ async function guardar() {
       ? Number(document.getElementById('idCategoria').value)
       : null,
 
-    idUbicacion: document.getElementById('idUbicacion').value
-      ? Number(document.getElementById('idUbicacion').value)
-      : null,
+    idUbicacion: idUbicacionFinal,
 
     idUsuario: esAnonimo === 1
       ? null

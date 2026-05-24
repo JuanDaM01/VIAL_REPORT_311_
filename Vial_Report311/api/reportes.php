@@ -216,7 +216,8 @@ try {
                             r.descripcion,
                             r.estado,
                             r.esAnonimo,
-                            r.voto,
+                            r.totalVotos,
+                            r.totalVotos AS voto,
                             r.fechaCreacion,
                             r.fechaActualizacion,
                             r.fechaCierre,
@@ -303,7 +304,8 @@ t.idFuncionario,
                         r.descripcion,
                         r.estado,
                         r.esAnonimo,
-                        r.voto,
+                        r.totalVotos,
+                        r.totalVotos AS voto,
                         r.fechaCreacion,
                         r.fechaActualizacion,
                         r.fechaCierre,
@@ -394,9 +396,9 @@ t.idFuncionario,
             $pdo->beginTransaction();
 
             $sqlReporte = "INSERT INTO reporte
-                            (titulo, descripcion, estado, esAnonimo, voto,
+                            (titulo, descripcion, estado, esAnonimo,
                              idUsuario, idUbicacion, idCategoria)
-                           VALUES (?, ?, ?, ?, 0, ?, ?, ?)";
+                           VALUES (?, ?, ?, ?, ?, ?, ?)";
 
             $stReporte = $pdo->prepare($sqlReporte);
             $stReporte->execute([
