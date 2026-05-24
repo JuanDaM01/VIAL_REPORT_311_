@@ -15,15 +15,24 @@ $usuario  = usuarioSesion();
 $urlInicio = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
 $slugInicio = ($rol === 'administrador') ? 'index' : 'reportes';
 
-// Todos ven Inicio y Reportes públicos
+// Todos ven Inicio y Reportes públicos, pero ciudadano con menú simplificado sin redundancia
+$itemsComun = [];
+if ($rol === 'ciudadano') {
+    $itemsComun = [
+        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Inicio']
+    ];
+} else {
+    $itemsComun = [
+        ['url' => $urlInicio,    'slug' => $slugInicio, 'icon' => 'home',      'label' => 'Inicio'],
+        ['url' => URL_REPORTES,  'slug' => 'reportes',  'icon' => 'flag',      'label' => 'Reportes'],
+        ['url' => URL_VOTACIONES, 'slug' => 'votaciones','icon'=> 'thumbs-up', 'label' => 'Votaciones'],
+        ['url' => URL_COMENTARIOS,'slug' => 'comentarios','icon'=>'message',   'label' => 'Comentarios'],
+    ];
+}
+
 $gruposComun = [
     'label' => 'Comunidad',
-    'items' => [
-        ['url' => $urlInicio,       'slug' => $slugInicio, 'icon' => 'home',      'label' => 'Inicio'],
-        ['url' => URL_REPORTES,    'slug' => 'reportes', 'icon' => 'flag',      'label' => 'Reportes'],
-        ['url' => URL_VOTACIONES,  'slug' => 'votaciones','icon'=> 'thumbs-up', 'label' => 'Votaciones'],
-        ['url' => URL_COMENTARIOS, 'slug' => 'comentarios','icon'=>'message',   'label' => 'Comentarios'],
-    ],
+    'items' => $itemsComun,
 ];
 
 $gruposOperaciones = [

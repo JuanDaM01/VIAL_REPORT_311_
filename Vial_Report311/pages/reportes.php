@@ -246,9 +246,116 @@
       border-radius: 3px 3px 0 0;
     }
     
-    @media (max-width: 768px) {
-      .ciudadano-hero { padding: 1.8rem; flex-direction: column; text-align: center; gap: 1.5rem; }
-      .hero-decor { display: none; }
+    
+    /* Botón Votar */
+    .btn-vote {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .btn-vote:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(245,166,35,0.06);
+    }
+    .btn-vote.voted {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(39,174,96,0.1);
+    }
+    .btn-vote.voted:hover {
+      background: rgba(39,174,96,0.18);
+    }
+
+    /* Botón/Enlace Comentario en fila */
+    .btn-comment {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 0;
+      transition: opacity 0.15s;
+      margin-top: 4px;
+      outline: none;
+    }
+    .btn-comment:hover {
+      text-decoration: underline;
+      opacity: 0.85;
+    }
+
+    /* Modal Comentarios */
+    .comments-thread {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.15);
+      margin-bottom: 1rem;
+    }
+    .comment-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      position: relative;
+    }
+    .comment-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+      font-size: 0.75rem;
+    }
+    .comment-author {
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .comment-date {
+      color: var(--muted);
+    }
+    .comment-text {
+      font-size: 0.84rem;
+      color: var(--text2);
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .comment-form {
+      display: flex;
+      gap: 0.6rem;
+      align-items: stretch;
+    }
+    .comment-form textarea {
+      flex: 1;
+      height: 42px !important;
+      min-height: 42px !important;
+      resize: none;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+    .comment-form button {
+      padding: 0 1.2rem;
     }
   </style>
 </head>
@@ -275,7 +382,7 @@
   <!-- Pestañas de Filtrado para Ciudadano -->
   <div class="citizen-tabs" id="citizenTabs">
     <button class="tab-btn active" onclick="filtrarVista('mis')">Mis Reportes</button>
-    <button class="tab-btn" onclick="filtrarVista('todos')">Todos los Reportes (Buscar duplicados)</button>
+    <button class="tab-btn" onclick="filtrarVista('todos')">Todos los Reportes</button>
   </div>
 
   <div class="table-wrap">
@@ -430,6 +537,31 @@
 
 <div id="toast"></div>
 
+<!-- Modal COMENTARIOS INTERACTIVOS -->
+<div class="modal-overlay" id="commentsModal">
+  <div class="modal" style="width: 520px;">
+    <div class="modal-head">
+      <h3 id="commentsModalTit">Comentarios del Reporte</h3>
+      <button onclick="cerrarCommentsModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="commReportId"/>
+      
+      <!-- Hilo de comentarios -->
+      <div class="comments-thread" id="commentsThread">
+        <div class="text-muted" style="text-align: center; padding: 2rem;">Cargando comentarios...</div>
+      </div>
+
+      <!-- Formulario para agregar comentario -->
+      <div class="comment-form">
+        <textarea id="newCommentText" rows="2" placeholder="Escribe un comentario sobre este reporte..."></textarea>
+        <button class="btn btn-primary" onclick="guardarComentario()">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const USER_ROLE = '<?= rolActual() ?>';
 const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
@@ -440,6 +572,20 @@ const API_CATALOGOS = '../api/catalogos.php?recurso=todo';
 
 let todosLosReportes = [];
 let vistaActual = 'mis';
+let misVotos = new Set();
+
+async function cargarMisVotos() {
+  if (!USER_ID) return;
+  try {
+    const res = await fetch(`../api/votos.php?idUsuario=${USER_ID}`);
+    const data = await res.json();
+    if (res.ok && Array.isArray(data)) {
+      misVotos = new Set(data.map(v => Number(v.idReporte)));
+    }
+  } catch (err) {
+    console.error("Error al cargar votos del usuario: ", err);
+  }
+}
 
 let catalogos = {
   categorias: [],
@@ -798,6 +944,25 @@ function renderizarTabla() {
       accionesHtml = `<span class="badge badge-recibido" style="opacity: 0.65; cursor: not-allowed; padding: 4px 10px; font-size: 0.72rem;">Sólo lectura</span>`;
     }
 
+    // Columna Votos interactiva o estándar
+    let votosColHtml = '';
+    if (USER_ROLE === 'ciudadano') {
+      const yaVoto = misVotos.has(Number(r.idReporte));
+      const activeClass = yaVoto ? ' voted' : '';
+      const label = yaVoto ? '✓ Votado' : '👍 Votar';
+      votosColHtml = `
+        <button class="btn-vote${activeClass}" onclick="toggleVoto(${r.idReporte})">
+          ${label} <span class="badge badge-en_proceso" style="background: rgba(255,255,255,0.25); color: inherit; padding: 1px 6px;">${r.totalVotos ?? 0}</span>
+        </button>
+      `;
+    } else {
+      votosColHtml = `
+        <span class="badge badge-en_proceso">
+          ${escapeHtml(r.totalVotos ?? 0)}
+        </span>
+      `;
+    }
+
     return `
       <tr>
         <td>
@@ -810,6 +975,8 @@ function renderizarTabla() {
           <strong>${escapeHtml(r.titulo)}</strong>
           <br>
           <small>${escapeHtml(r.descripcion ?? '')}</small>
+          <br>
+          <button class="btn-comment" onclick="abrirCommentsModal(${r.idReporte})">💬 Comentarios</button>
         </td>
 
         <td>${escapeHtml(r.categoria)}</td>
@@ -821,9 +988,7 @@ function renderizarTabla() {
         </td>
 
         <td>
-          <span class="badge badge-en_proceso">
-            ${escapeHtml(r.totalVotos ?? 0)}
-          </span>
+          ${votosColHtml}
         </td>
 
         <td class="col-admin">
@@ -1146,6 +1311,136 @@ async function eliminar(id, titulo) {
   cargar();
 }
 
+async function toggleVoto(idReporte) {
+  if (!USER_ID) {
+    toast('Inicie sesión para votar', false);
+    return;
+  }
+  
+  const yaVoto = misVotos.has(Number(idReporte));
+  const method = yaVoto ? 'DELETE' : 'POST';
+  const url = yaVoto 
+    ? `../api/votos.php?idUsuario=${USER_ID}&idReporte=${idReporte}` 
+    : `../api/votos.php`;
+    
+  const options = { method };
+  if (method === 'POST') {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify({ idUsuario: USER_ID, idReporte: idReporte });
+  }
+
+  try {
+    const res = await fetch(url, options);
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      toast(data.error ?? 'No se pudo procesar el voto', false);
+      return;
+    }
+    
+    if (yaVoto) {
+      misVotos.delete(idReporte);
+      toast('Voto retirado correctamente', true);
+    } else {
+      misVotos.add(idReporte);
+      toast('¡Voto registrado!', true);
+    }
+    
+    await cargar();
+  } catch (err) {
+    toast('Error al procesar voto: ' + err.message, false);
+  }
+}
+
+async function abrirCommentsModal(idReporte) {
+  const rep = todosLosReportes.find(x => x.idReporte == idReporte);
+  const tituloReporte = rep ? rep.titulo : '';
+  
+  document.getElementById('commReportId').value = idReporte;
+  document.getElementById('commentsModalTit').textContent = `Comentarios: "${tituloReporte}"`;
+  document.getElementById('newCommentText').value = '';
+  document.getElementById('commentsModal').classList.add('open');
+  await cargarComentarios(idReporte);
+}
+
+function cerrarCommentsModal() {
+  document.getElementById('commentsModal').classList.remove('open');
+}
+
+async function cargarComentarios(idReporte) {
+  const thread = document.getElementById('commentsThread');
+  thread.innerHTML = '<div class="text-muted" style="text-align: center; padding: 2rem;">Cargando comentarios...</div>';
+  
+  try {
+    const res = await fetch(`../api/comentarios.php?idReporte=${idReporte}`);
+    const data = await res.json();
+    
+    if (!res.ok || data.error) {
+      thread.innerHTML = `<div class="text-danger" style="text-align: center; padding: 2rem;">Error al cargar comentarios: ${data.error ?? ''}</div>`;
+      return;
+    }
+    
+    if (data.length === 0) {
+      thread.innerHTML = '<div class="text-muted" style="text-align: center; padding: 2rem; font-style: italic;">Sin comentarios. ¡Sé el primero en comentar!</div>';
+      return;
+    }
+    
+    thread.innerHTML = data.map(c => {
+      const autor = c.usuario ? escapeHtml(c.usuario) : 'Usuario desconocido';
+      const fecha = formatearFecha(c.fechaComentario) + ' ' + String(c.fechaComentario).substring(11, 16);
+      const rolBadge = c.rol ? `<span class="badge badge-${escapeHtml(c.rol)}" style="font-size: 0.6rem; padding: 1px 6px; margin-left: 6px;">${escapeHtml(c.rol)}</span>` : '';
+      
+      return `
+        <div class="comment-card">
+          <div class="comment-meta">
+            <span class="comment-author">${autor}${rolBadge}</span>
+            <span class="comment-date">${fecha}</span>
+          </div>
+          <div class="comment-text">${escapeHtml(c.contenido)}</div>
+        </div>
+      `;
+    }).join('');
+    
+    thread.scrollTop = thread.scrollHeight;
+    
+  } catch (err) {
+    thread.innerHTML = `<div class="text-danger" style="text-align: center; padding: 2rem;">Error al cargar comentarios: ${err.message}</div>`;
+  }
+}
+
+async function guardarComentario() {
+  const idReporte = Number(document.getElementById('commReportId').value);
+  const contenido = document.getElementById('newCommentText').value.trim();
+  
+  if (!contenido) {
+    toast('El comentario no puede estar vacío', false);
+    return;
+  }
+  
+  try {
+    const res = await fetch('../api/comentarios.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contenido: contenido,
+        idReporte: idReporte,
+        idUsuario: USER_ID
+      })
+    });
+    
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      toast(data.error ?? 'No se pudo guardar el comentario', false);
+      return;
+    }
+    
+    document.getElementById('newCommentText').value = '';
+    toast('Comentario agregado correctamente', true);
+    await cargarComentarios(idReporte);
+  } catch (err) {
+    toast('Error al guardar comentario: ' + err.message, false);
+  }
+}
+
 function toast(msg, ok) {
   const t = document.getElementById('toast');
 
@@ -1162,6 +1457,7 @@ async function iniciar() {
   if (nameEl) {
     nameEl.textContent = USER_NAME;
   }
+  await cargarMisVotos();
   await cargarCatalogos();
   await cargar();
 }
