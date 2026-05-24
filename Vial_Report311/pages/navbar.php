@@ -20,8 +20,16 @@ $current = basename($_SERVER['PHP_SELF'], '.php');
       🎫 Tickets
     </a>
 
+    <a href="proveedores.php" class="<?= $current === 'proveedores' ? 'active' : '' ?>">
+      🏢 Proveedores
+    </a>
+
     <a href="categorias.php" class="<?= $current === 'categorias' ? 'active' : '' ?>">
       🏷 Categorías
+    </a>
+
+    <a href="ubicaciones.php" class="<?= $current === 'ubicaciones' ? 'active' : '' ?>">
+      📍 Ubicaciones
     </a>
 
     <a href="notificaciones.php" class="<?= $current === 'notificaciones' ? 'active' : '' ?>">
