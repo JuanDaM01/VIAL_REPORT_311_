@@ -1,36 +1,20 @@
 <?php
 // config/app.php
-// Configuración global de la aplicación
-// Ajusta BASE_URL si tu proyecto no está en la raíz del servidor
+// Configuración global — BASE_URL calculada desde SCRIPT_NAME
 
-// Detecta automáticamente la URL base desde el documento raíz del proyecto
-// Ejemplo: si tienes http://localhost/Vial_Report311/ → BASE_URL = '/Vial_Report311'
-// Si está en la raíz → BASE_URL = ''
+// Detecta el prefijo del proyecto en la URL
+// Ej: /Vial_Report311/pages/usuarios.php → BASE_URL = /Vial_Report311
+// Ej: /Vial_Report311/index.php          → BASE_URL = /Vial_Report311
 
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+$parts  = explode('/', trim($script, '/'));
 
-// Sube hasta encontrar la carpeta raíz del proyecto (donde está index.php)
-// El proyecto vive en /Vial_Report311/ (la subcarpeta del repositorio)
-$projectRoot = rtrim(dirname(str_replace('\\', '/', __DIR__ . '/../')), '/');
+// El primer segmento es siempre el nombre del proyecto (Vial_Report311)
+$base = '/' . ($parts[0] ?? '');
 
-// Calculamos el prefijo relativo al document root de Apache
-$docRoot = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+define('BASE_URL', $base);
 
-if (!empty($docRoot) && str_starts_with($projectRoot, $docRoot)) {
-    define('BASE_URL', substr($projectRoot, strlen($docRoot)));
-} else {
-    // Fallback: derivar de SCRIPT_NAME
-    $parts = explode('/', ltrim($scriptName, '/'));
-    // Si el proyecto está en /Vial_Report311/pages/foo.php → ['Vial_Report311','pages','foo.php']
-    // BASE = /Vial_Report311
-    if (count($parts) >= 2) {
-        define('BASE_URL', '/' . $parts[0]);
-    } else {
-        define('BASE_URL', '');
-    }
-}
-
-// ─── Rutas de secciones ────────────────────────────────────
+// ─── Rutas ────────────────────────────────────────────────
 define('URL_HOME',           BASE_URL . '/index.php');
 define('URL_USUARIOS',       BASE_URL . '/pages/usuarios.php');
 define('URL_REPORTES',       BASE_URL . '/pages/reportes.php');

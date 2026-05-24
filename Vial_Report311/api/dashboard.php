@@ -25,137 +25,111 @@ try {
     $totales = [];
 
     $tablas = [
-        'usuarios' => 'usuario',
-        'reportes' => 'reporte',
-        'tickets' => 'ticket',
-        'proveedores' => 'proveedor',
+        'usuarios'   => 'usuario',
+        'reportes'   => 'reporte',
+        'tickets'    => 'ticket',
+        'proveedores'=> 'proveedor',
         'categorias' => 'categoria',
-        'ubicaciones' => 'ubicacion',
-        'comentarios' => 'comentario',
+        'ubicaciones'=> 'ubicacion',
+        'comentarios'=> 'comentario',
         'evidencias' => 'evidencia',
-        'alertas' => 'alerta_local'
+        'alertas'    => 'alerta_local'
     ];
 
     foreach ($tablas as $clave => $tabla) {
-
-        $sql = "SELECT COUNT(*) AS total FROM $tabla";
-        $st = $pdo->query($sql);
-
-        $totales[$clave] = (int) $st->fetchColumn();
+        $sql = "SELECT COUNT(*) FROM $tabla";
+        $totales[$clave] = (int) $pdo->query($sql)->fetchColumn();
     }
 
     // =====================================================
     // REPORTES POR ESTADO
     // =====================================================
 
-    $sqlEstados = "SELECT
-                        estado,
-                        COUNT(*) AS total
-                    FROM reporte
-                    GROUP BY estado
-                    ORDER BY total DESC";
-
-    $stEstados = $pdo->query($sqlEstados);
-
-    $reportesPorEstado = $stEstados->fetchAll();
+    $reportesPorEstado = $pdo->query(
+        "SELECT estado, COUNT(*) AS total
+         FROM reporte
+         GROUP BY estado
+         ORDER BY total DESC"
+    )->fetchAll();
 
     // =====================================================
     // TICKETS POR PRIORIDAD
     // =====================================================
 
-    $sqlPrioridad = "SELECT
-                        prioridad,
-                        COUNT(*) AS total
-                    FROM ticket
-                    GROUP BY prioridad
-                    ORDER BY total DESC";
-
-    $stPrioridad = $pdo->query($sqlPrioridad);
-
-    $ticketsPorPrioridad = $stPrioridad->fetchAll();
+    $ticketsPorPrioridad = $pdo->query(
+        "SELECT prioridad, COUNT(*) AS total
+         FROM ticket
+         GROUP BY prioridad
+         ORDER BY total DESC"
+    )->fetchAll();
 
     // =====================================================
     // REPORTES MÁS VOTADOS
     // =====================================================
 
-    $sqlMasVotados = "SELECT
-                            r.idReporte,
-                            r.titulo,
-                            r.estado,
-                            r.totalVotos,
-                            c.nombre AS categoria,
-                            CONCAT(ub.barrio, ', ', ub.ciudad) AS ubicacion
-                        FROM reporte r
-                        INNER JOIN categoria c
-                            ON r.idCategoria = c.idCategoria
-                        INNER JOIN ubicacion ub
-                            ON r.idUbicacion = ub.idUbicacion
-                        ORDER BY r.totalVotos DESC, r.fechaCreacion DESC
-                        LIMIT 5";
-
-    $stMasVotados = $pdo->query($sqlMasVotados);
-
-    $reportesMasVotados = $stMasVotados->fetchAll();
+    $reportesMasVotados = $pdo->query(
+        "SELECT
+             r.idReporte,
+             r.titulo,
+             r.estado,
+             r.totalVotos,
+             c.nombre AS categoria,
+             CONCAT(ub.barrio, ', ', ub.ciudad) AS ubicacion
+         FROM reporte r
+         INNER JOIN categoria c  ON r.idCategoria = c.idCategoria
+         INNER JOIN ubicacion ub ON r.idUbicacion  = ub.idUbicacion
+         ORDER BY r.totalVotos DESC, r.fechaCreacion DESC
+         LIMIT 5"
+    )->fetchAll();
 
     // =====================================================
     // ÚLTIMOS REPORTES
     // =====================================================
 
-    $sqlUltimos = "SELECT
-                        r.idReporte,
-                        r.titulo,
-                        r.estado,
-                        r.fechaCreacion,
-                        c.nombre AS categoria,
-                        CONCAT(ub.barrio, ', ', ub.ciudad) AS ubicacion
-                    FROM reporte r
-                    INNER JOIN categoria c
-                        ON r.idCategoria = c.idCategoria
-                    INNER JOIN ubicacion ub
-                        ON r.idUbicacion = ub.idUbicacion
-                    ORDER BY r.fechaCreacion DESC
-                    LIMIT 5";
-
-    $stUltimos = $pdo->query($sqlUltimos);
-
-    $ultimosReportes = $stUltimos->fetchAll();
+    $ultimosReportes = $pdo->query(
+        "SELECT
+             r.idReporte,
+             r.titulo,
+             r.estado,
+             r.fechaCreacion,
+             c.nombre AS categoria,
+             CONCAT(ub.barrio, ', ', ub.ciudad) AS ubicacion
+         FROM reporte r
+         INNER JOIN categoria c  ON r.idCategoria = c.idCategoria
+         INNER JOIN ubicacion ub ON r.idUbicacion  = ub.idUbicacion
+         ORDER BY r.fechaCreacion DESC
+         LIMIT 5"
+    )->fetchAll();
 
     // =====================================================
     // TOP PROVEEDORES
     // =====================================================
 
-    $sqlProveedores = "SELECT
-                            p.idProveedor,
-                            p.nombreEntidad,
-                            p.solucionesResueltas,
-                            COUNT(t.idTicket) AS ticketsAsignados
-                        FROM proveedor p
-                        LEFT JOIN ticket t
-                            ON p.idProveedor = t.idProveedor
-                        GROUP BY
-                            p.idProveedor,
-                            p.nombreEntidad,
-                            p.solucionesResueltas
-                        ORDER BY ticketsAsignados DESC
-                        LIMIT 5";
-
-    $stProveedores = $pdo->query($sqlProveedores);
-
-    $topProveedores = $stProveedores->fetchAll();
+    $topProveedores = $pdo->query(
+        "SELECT
+             p.idProveedor,
+             p.nombreEntidad,
+             p.solucionesResueltas,
+             COUNT(t.idTicket) AS ticketsAsignados
+         FROM proveedor p
+         LEFT JOIN ticket t ON p.idProveedor = t.idProveedor
+         GROUP BY p.idProveedor, p.nombreEntidad, p.solucionesResueltas
+         ORDER BY ticketsAsignados DESC
+         LIMIT 5"
+    )->fetchAll();
 
     responder([
-        'totales' => $totales,
-        'reportesPorEstado' => $reportesPorEstado,
+        'totales'             => $totales,
+        'reportesPorEstado'   => $reportesPorEstado,
         'ticketsPorPrioridad' => $ticketsPorPrioridad,
-        'reportesMasVotados' => $reportesMasVotados,
-        'ultimosReportes' => $ultimosReportes,
-        'topProveedores' => $topProveedores
+        'reportesMasVotados'  => $reportesMasVotados,
+        'ultimosReportes'     => $ultimosReportes,
+        'topProveedores'      => $topProveedores,
     ]);
 
 } catch (PDOException $e) {
-
     responder([
-        'error' => 'Error al cargar dashboard',
+        'error'   => 'Error al cargar dashboard',
         'detalle' => $e->getMessage()
     ], 500);
 }
