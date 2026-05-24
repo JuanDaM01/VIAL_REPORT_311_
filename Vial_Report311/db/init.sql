@@ -174,7 +174,7 @@ CREATE TABLE ticket (
     fechaAsignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fechaResolucion DATETIME DEFAULT NULL,
 
-    idReporte INT NOT NULL,
+    idReporte INT NOT NULL UNIQUE,
     idProveedor INT DEFAULT NULL,
     idFuncionario INT DEFAULT NULL,
 
