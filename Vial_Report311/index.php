@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/config/app.php'; ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Dashboard — VialReport311</title>
 
-  <link rel="stylesheet" href="assets/css/style.css"/>
+  <link rel="stylesheet" href="<?= URL_CSS ?>"/>
 
   <style>
     .dashboard-grid{
@@ -256,7 +257,7 @@
 </div>
 
 <script>
-const API_DASHBOARD = 'api/dashboard.php';
+const API_DASHBOARD = '<?= URL_API ?>/dashboard.php';
 
 function escapeHtml(valor) {
   if (valor === null || valor === undefined || valor === '') return '—';
@@ -354,7 +355,7 @@ async function cargarDashboard() {
 
         <td>
           <span class="badge badge-en_proceso">
-            ${escapeHtml(r.voto ?? 0)}
+            ${escapeHtml(r.totalVotos ?? 0)}
           </span>
         </td>
       </tr>
