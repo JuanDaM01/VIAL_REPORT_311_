@@ -126,16 +126,156 @@
       background: rgba(245,166,35,.12);
       color: var(--accent);
     }
+
+    /* ── Portal Ciudadano ── */
+    body.role-ciudadano #grp-estado,
+    body.role-ciudadano #grp-prioridad,
+    body.role-ciudadano #grp-usuario,
+    body.role-ciudadano #grp-proveedor,
+    body.role-ciudadano #grp-funcionario,
+    body.role-ciudadano .col-admin {
+      display: none !important;
+    }
+    
+    /* Hero Banner Ciudadano */
+    .ciudadano-hero {
+      display: none;
+      background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 2.2rem 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+    body.role-ciudadano .ciudadano-hero {
+      display: flex;
+    }
+    body.role-ciudadano .page-header {
+      display: none !important;
+    }
+    .ciudadano-hero::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,166,35,.08) 0%, transparent 70%);
+      top: -100px;
+      right: -50px;
+      pointer-events: none;
+    }
+    .ciudadano-hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: .6rem;
+      letter-spacing: -.5px;
+      color: var(--text);
+    }
+    .ciudadano-hero h1 span {
+      color: var(--accent);
+    }
+    .ciudadano-hero p {
+      color: var(--text2);
+      font-size: 1rem;
+      max-width: 600px;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .ciudadano-hero .btn-lg {
+      padding: .7rem 1.6rem;
+      font-size: .95rem;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(245,166,35,.3);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .ciudadano-hero .btn-lg:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245,166,35,.45);
+    }
+    .hero-decor {
+      font-size: 4.5rem;
+      opacity: .85;
+      animation: float 4s ease-in-out infinite alternate;
+      user-select: none;
+    }
+    @keyframes float {
+      from { transform: translateY(0px) rotate(0deg); }
+      to   { transform: translateY(-10px) rotate(5deg); }
+    }
+    
+    /* Pestañas Ciudadano */
+    .citizen-tabs {
+      display: none;
+      gap: .5rem;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+    }
+    body.role-ciudadano .citizen-tabs {
+      display: flex;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: .6rem 1.2rem;
+      cursor: pointer;
+      position: relative;
+      transition: color .2s;
+    }
+    .tab-btn:hover {
+      color: var(--text2);
+    }
+    .tab-btn.active {
+      color: var(--accent);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -.5rem;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+    }
+    
+    @media (max-width: 768px) {
+      .ciudadano-hero { padding: 1.8rem; flex-direction: column; text-align: center; gap: 1.5rem; }
+      .hero-decor { display: none; }
+    }
   </style>
 </head>
-<body>
+<body class="role-<?= rolActual() ?>">
 
 <?php include 'navbar.php'; ?>
 
 <div class="page">
+  <!-- Hero Banner para Ciudadano -->
+  <div id="ciudadanoHero" class="ciudadano-hero">
+    <div class="hero-content">
+      <h1>¡Hola, <span id="citizenName"></span>!</h1>
+      <p>Ayuda a mejorar nuestra ciudad reportando daños en la infraestructura vial. Las entidades correspondientes los solucionarán a la brevedad.</p>
+      <button class="btn btn-primary btn-lg" onclick="abrirModal()">＋ Reportar Problema Vial</button>
+    </div>
+    <div class="hero-decor">🚧</div>
+  </div>
+
   <div class="page-header">
     <h2>Gestión de <span>Reportes</span></h2>
     <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo reporte</button>
+  </div>
+
+  <!-- Pestañas de Filtrado para Ciudadano -->
+  <div class="citizen-tabs" id="citizenTabs">
+    <button class="tab-btn active" onclick="filtrarVista('mis')">Mis Reportes</button>
+    <button class="tab-btn" onclick="filtrarVista('todos')">Todos los Reportes (Buscar duplicados)</button>
   </div>
 
   <div class="table-wrap">
@@ -147,9 +287,9 @@
           <th>Categoría</th>
           <th>Estado</th>
           <th>Votos</th>
-          <th>Prioridad</th>
-          <th>Proveedor</th>
-          <th>Ciudadano</th>
+          <th class="col-admin">Prioridad</th>
+          <th class="col-admin">Proveedor</th>
+          <th class="col-admin">Ciudadano</th>
           <th>Ubicación</th>
           <th>Fecha</th>
           <th>Acciones</th>
@@ -207,7 +347,7 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" id="grp-estado">
           <label>Estado del reporte</label>
           <select id="estado">
             <option value="recibido">Recibido</option>
@@ -217,7 +357,7 @@
           </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="grp-prioridad">
           <label>Prioridad del ticket</label>
           <select id="prioridad">
             <option value="">Automática</option>
@@ -230,12 +370,12 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" id="grp-usuario">
           <label>Ciudadano</label>
           <select id="idUsuario"></select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="grp-proveedor">
           <label>Proveedor responsable</label>
           <select id="idProveedor">
             <option value="">Asignación automática</option>
@@ -244,7 +384,7 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" id="grp-funcionario">
           <label>Funcionario asignado</label>
           <select id="idFuncionario">
             <option value="">Asignación automática</option>
@@ -291,8 +431,15 @@
 <div id="toast"></div>
 
 <script>
+const USER_ROLE = '<?= rolActual() ?>';
+const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
+const USER_NAME = <?= json_encode($_SESSION['nombre'] ?? '') ?>;
+
 const API_REPORTES = '../api/reportes.php';
 const API_CATALOGOS = '../api/catalogos.php?recurso=todo';
+
+let todosLosReportes = [];
+let vistaActual = 'mis';
 
 let catalogos = {
   categorias: [],
@@ -330,7 +477,15 @@ function textoUbicacion(u) {
   if (u.direccionTexto) partes.push(u.direccionTexto);
   if (u.ciudad) partes.push(u.ciudad);
 
-  return partes.join(' - ');
+  const unicas = [];
+  partes.forEach(p => {
+    const trimP = p.trim();
+    if (trimP && !unicas.includes(trimP)) {
+      unicas.push(trimP);
+    }
+  });
+
+  return unicas.join(' - ');
 }
 
 function textoPersona(u) {
@@ -464,6 +619,15 @@ function initComboboxUbicacion() {
   input.addEventListener('focus', abrirDropdown);
   input.addEventListener('input', () => {
     cbHighlightIdx = -1;
+
+    // Si había una ubicación seleccionada y el usuario cambió el texto,
+    // se limpia la selección para forzar una nueva búsqueda o creación.
+    if (ubicacionSeleccionada && input.value !== ubicacionSeleccionada.texto) {
+      ubicacionSeleccionada = null;
+      hidden.value = '';
+      badge.innerHTML = '';
+    }
+
     renderDropdown(input.value);
     if (!esAbierto()) abrirDropdown();
 
@@ -519,6 +683,12 @@ function initComboboxUbicacion() {
       }
     } else if (e.key === 'Escape') {
       cerrarDropdown();
+    } else if (e.key === 'Tab') {
+      const val = input.value.trim();
+      if (val && !ubicacionSeleccionada) {
+        usarNueva(val);
+      }
+      cerrarDropdown();
     }
   });
 }
@@ -572,15 +742,61 @@ async function cargar() {
     return;
   }
 
-  if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No hay reportes registrados.</td></tr>';
+  todosLosReportes = data;
+  renderizarTabla();
+}
+
+function filtrarVista(tipo) {
+  vistaActual = tipo;
+
+  const btns = document.querySelectorAll('#citizenTabs .tab-btn');
+  btns.forEach(btn => {
+    if (btn.getAttribute('onclick').includes(tipo)) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  renderizarTabla();
+}
+
+function renderizarTabla() {
+  const tbody = document.getElementById('tbody');
+
+  let reportesFiltrados = todosLosReportes;
+
+  // Si es ciudadano, filtramos según la pestaña seleccionada
+  if (USER_ROLE === 'ciudadano') {
+    if (vistaActual === 'mis') {
+      reportesFiltrados = todosLosReportes.filter(r => r.idUsuario == USER_ID);
+    }
+  }
+
+  if (!reportesFiltrados.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">No se encontraron reportes en esta sección.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = data.map(r => {
+  tbody.innerHTML = reportesFiltrados.map(r => {
     const tipoUsuario = r.esAnonimo == 1
       ? '<span class="badge badge-anonimo">Anónimo</span>'
       : escapeHtml(r.nombreUsuario ?? '—');
+
+    // Determinar si el usuario actual puede editar/eliminar este reporte
+    let accionesHtml = '';
+    const puedeEditar = (USER_ROLE === 'administrador') ||
+                        (USER_ROLE === 'funcionario') ||
+                        (USER_ROLE === 'ciudadano' && r.idUsuario == USER_ID);
+
+    if (puedeEditar) {
+      accionesHtml = `
+        <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
+        <button class="btn-del" onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
+      `;
+    } else {
+      accionesHtml = `<span class="badge badge-recibido" style="opacity: 0.65; cursor: not-allowed; padding: 4px 10px; font-size: 0.72rem;">Sólo lectura</span>`;
+    }
 
     return `
       <tr>
@@ -610,20 +826,19 @@ async function cargar() {
           </span>
         </td>
 
-        <td>
+        <td class="col-admin">
           <span class="badge badge-${escapeHtml(r.prioridad ?? 'media')}">
             ${escapeHtml(r.prioridad ?? 'media')}
           </span>
         </td>
 
-        <td>${escapeHtml(r.proveedor ?? 'Sin asignar')}</td>
-        <td>${tipoUsuario}</td>
+        <td class="col-admin">${escapeHtml(r.proveedor ?? 'Sin asignar')}</td>
+        <td class="col-admin">${tipoUsuario}</td>
         <td>${escapeHtml(r.ubicacion ?? '—')}</td>
         <td>${escapeHtml(formatearFecha(r.fechaCreacion))}</td>
 
         <td class="td-acc">
-          <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
-          <button class="btn-del" onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
+          ${accionesHtml}
         </td>
       </tr>
     `;
@@ -642,9 +857,22 @@ function abrirModal() {
   document.getElementById('ubicacionBadge').innerHTML = '';
   ubicacionSeleccionada = null;
   ubicacionTextoNuevo = '';
+
+  // Cerrar combobox dropdown
+  const cbDropdown = document.getElementById('ubicacionDropdown');
+  const cbToggle = document.getElementById('ubicacionToggle');
+  if (cbDropdown) cbDropdown.classList.remove('open');
+  if (cbToggle) cbToggle.classList.remove('open');
+
   document.getElementById('estado').value = 'recibido';
   document.getElementById('prioridad').value = '';
-  document.getElementById('idUsuario').value = '';
+
+  if (USER_ROLE === 'ciudadano') {
+    document.getElementById('idUsuario').value = USER_ID;
+  } else {
+    document.getElementById('idUsuario').value = '';
+  }
+
   document.getElementById('idProveedor').value = '';
   document.getElementById('idFuncionario').value = '';
   document.getElementById('urlArchivo').value = '';
@@ -673,6 +901,12 @@ async function editar(id) {
   document.getElementById('descripcion').value = r.descripcion ?? '';
   document.getElementById('idCategoria').value = r.idCategoria ?? '';
 
+  // Cerrar combobox dropdown
+  const cbDropdown = document.getElementById('ubicacionDropdown');
+  const cbToggle = document.getElementById('ubicacionToggle');
+  if (cbDropdown) cbDropdown.classList.remove('open');
+  if (cbToggle) cbToggle.classList.remove('open');
+
   // Restaurar ubicación en el combobox
   document.getElementById('idUbicacion').value = r.idUbicacion ?? '';
   if (r.idUbicacion) {
@@ -693,7 +927,13 @@ async function editar(id) {
 
   document.getElementById('estado').value = r.estado ?? 'recibido';
   document.getElementById('prioridad').value = r.prioridad ?? '';
-  document.getElementById('idUsuario').value = r.idUsuario ?? '';
+
+  if (USER_ROLE === 'ciudadano') {
+    document.getElementById('idUsuario').value = USER_ID;
+  } else {
+    document.getElementById('idUsuario').value = r.idUsuario ?? '';
+  }
+
   document.getElementById('idProveedor').value = r.idProveedor ?? '';
   document.getElementById('idFuncionario').value = r.idFuncionario ?? '';
   document.getElementById('urlArchivo').value = '';
@@ -720,6 +960,9 @@ function controlarAnonimo() {
     selectUsuario.disabled = true;
   } else {
     selectUsuario.disabled = false;
+    if (USER_ROLE === 'ciudadano') {
+      selectUsuario.value = USER_ID;
+    }
   }
 }
 
@@ -915,6 +1158,10 @@ function toast(msg, ok) {
 }
 
 async function iniciar() {
+  const nameEl = document.getElementById('citizenName');
+  if (nameEl) {
+    nameEl.textContent = USER_NAME;
+  }
   await cargarCatalogos();
   await cargar();
 }

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/config/session.php';
-requireRole(['administrador']); // solo administradores pueden ver el dashboard
+requireRole(['administrador']);
 ?>
 
 <!DOCTYPE html>
