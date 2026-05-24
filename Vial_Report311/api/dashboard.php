@@ -82,7 +82,7 @@ try {
                             r.idReporte,
                             r.titulo,
                             r.estado,
-                            r.voto,
+                            r.totalVotos,
                             c.nombre AS categoria,
                             CONCAT(ub.barrio, ', ', ub.ciudad) AS ubicacion
                         FROM reporte r
@@ -90,7 +90,7 @@ try {
                             ON r.idCategoria = c.idCategoria
                         INNER JOIN ubicacion ub
                             ON r.idUbicacion = ub.idUbicacion
-                        ORDER BY r.voto DESC, r.fechaCreacion DESC
+                        ORDER BY r.totalVotos DESC, r.fechaCreacion DESC
                         LIMIT 5";
 
     $stMasVotados = $pdo->query($sqlMasVotados);
