@@ -10,18 +10,16 @@ $logueado = estaLogueado();
 $rol      = rolActual();   // ciudadano | funcionario | administrador | ''
 $usuario  = usuarioSesion();
 
-// ── Grupos por rol ─────────────────────────────────────────
-// URL de inicio según rol
-$urlInicio = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
-$slugInicio = ($rol === 'administrador') ? 'index' : 'reportes';
-$urlBrand = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
+// ── URL de inicio según rol ──────────────────────────────────
+$urlInicio  = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
+$slugInicio = ($rol === 'administrador') ? 'index'  : 'reportes';
+$urlBrand   = $urlInicio;
 
-// Todos ven Inicio y Reportes públicos, pero ciudadano y funcionario con menú simplificado sin redundancia ni duplicidad
-$itemsComun = [];
+// ── Grupos por rol ─────────────────────────────────────────
 if ($rol === 'ciudadano') {
     $itemsComun = [
-        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Inicio'],
-        ['url' => URL_ALERTAS, 'slug' => 'alertas', 'icon' => 'bell-ring', 'label' => 'Alertas Locales'],
+        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home',     'label' => 'Inicio'],
+        ['url' => URL_ALERTAS,  'slug' => 'alertas',  'icon' => 'bell-ring','label' => 'Alertas Locales'],
     ];
 } elseif ($rol === 'funcionario') {
     $itemsComun = [
@@ -29,10 +27,10 @@ if ($rol === 'ciudadano') {
     ];
 } else {
     $itemsComun = [
-        ['url' => $urlInicio,    'slug' => $slugInicio, 'icon' => 'home',      'label' => 'Inicio'],
-        ['url' => URL_REPORTES,  'slug' => 'reportes',  'icon' => 'flag',      'label' => 'Reportes'],
-        ['url' => URL_VOTACIONES, 'slug' => 'votaciones','icon'=> 'thumbs-up', 'label' => 'Votaciones'],
-        ['url' => URL_COMENTARIOS,'slug' => 'comentarios','icon'=>'message',   'label' => 'Comentarios'],
+        ['url' => $urlInicio,     'slug' => $slugInicio,  'icon' => 'home',      'label' => 'Inicio'],
+        ['url' => URL_REPORTES,   'slug' => 'reportes',   'icon' => 'flag',      'label' => 'Reportes'],
+        ['url' => URL_VOTACIONES, 'slug' => 'votaciones', 'icon' => 'thumbs-up', 'label' => 'Votaciones'],
+        ['url' => URL_COMENTARIOS,'slug' => 'comentarios','icon' => 'message',   'label' => 'Comentarios'],
     ];
 }
 
@@ -44,24 +42,24 @@ $gruposComun = [
 $gruposOperaciones = [
     'label' => ($rol === 'funcionario') ? 'Gestión de Casos' : 'Operaciones',
     'items' => [
-        ['url' => URL_TICKETS,     'slug' => 'tickets',   'icon' => 'ticket',    'label' => ($rol === 'funcionario') ? 'Mis Tickets' : 'Tickets'],
-        ['url' => URL_EVIDENCIAS,  'slug' => 'evidencias','icon' => 'paperclip', 'label' => 'Evidencias'],
+        ['url' => URL_TICKETS,    'slug' => 'tickets',   'icon' => 'ticket',    'label' => ($rol === 'funcionario') ? 'Mis Tickets' : 'Tickets'],
+        ['url' => URL_EVIDENCIAS, 'slug' => 'evidencias','icon' => 'paperclip', 'label' => 'Evidencias'],
     ],
 ];
 
 $gruposAdmin = [
     'label' => 'Administración',
     'items' => [
-        ['url' => URL_USUARIOS,    'slug' => 'usuarios',    'icon' => 'users',    'label' => 'Usuarios'],
-        ['url' => URL_PROVEEDORES, 'slug' => 'proveedores', 'icon' => 'building', 'label' => 'Proveedores'],
-        ['url' => URL_CATEGORIAS,  'slug' => 'categorias',  'icon' => 'tag',      'label' => 'Categorías'],
-        ['url' => URL_UBICACIONES, 'slug' => 'ubicaciones', 'icon' => 'map-pin',  'label' => 'Ubicaciones'],
-        ['url' => URL_ALERTAS,     'slug' => 'alertas',     'icon' => 'bell-ring','label' => 'Alertas'],
-        ['url' => URL_NOTIFICACIONES,'slug'=>'notificaciones','icon'=>'bell',      'label' => 'Notificaciones'],
+        ['url' => URL_USUARIOS,      'slug' => 'usuarios',      'icon' => 'users',    'label' => 'Usuarios'],
+        ['url' => URL_PROVEEDORES,   'slug' => 'proveedores',   'icon' => 'building', 'label' => 'Proveedores'],
+        ['url' => URL_CATEGORIAS,    'slug' => 'categorias',    'icon' => 'tag',      'label' => 'Categorías'],
+        ['url' => URL_UBICACIONES,   'slug' => 'ubicaciones',   'icon' => 'map-pin',  'label' => 'Ubicaciones'],
+        ['url' => URL_ALERTAS,       'slug' => 'alertas',       'icon' => 'bell-ring','label' => 'Alertas'],
+        ['url' => URL_NOTIFICACIONES,'slug' => 'notificaciones','icon' => 'bell',     'label' => 'Notificaciones'],
     ],
 ];
 
-// Armar lista de grupos visible según rol
+// Armar lista de grupos según rol
 $grupos = [$gruposComun];
 if (in_array($rol, ['funcionario','administrador'])) {
     $grupos[] = $gruposOperaciones;
@@ -70,7 +68,7 @@ if ($rol === 'administrador') {
     $grupos[] = $gruposAdmin;
 }
 
-// Iconos SVG inline (no dependen de CDN — soluciona el problema de iconos que no cargan)
+// ── Iconos SVG inline ───────────────────────────────────────
 $svgIcons = [
     'home'       => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
     'users'      => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -122,6 +120,27 @@ $svgIcons = [
       </div>
     <?php endforeach; ?>
 
+    <!-- ── NOTIFICACIONES CIUDADANO (botón especial con badge) ── -->
+    <?php if ($logueado && $rol === 'ciudadano'): ?>
+    <div class="nav-group nav-group-notif-ciudadano">
+      <span class="nav-group-label">Buzón</span>
+      <div class="nav-group-items">
+        <a href="<?= URL_NOTIFICACIONES ?>"
+           class="nav-link nav-notif-btn <?= $current === 'notificaciones' ? 'active' : '' ?>"
+           title="Mis notificaciones"
+           id="navNotifLink">
+          <!-- Campana con animación si hay no leídas -->
+          <span class="nav-notif-icon-wrap" id="navNotifIconWrap">
+            <?= $svgIcons['bell'] ?>
+          </span>
+          <span>Notificaciones</span>
+          <!-- Badge contador (oculto por defecto, JS lo muestra) -->
+          <span class="nav-notif-badge" id="navNotifBadge" style="display:none;">0</span>
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <!-- ── Usuario / Sesión ── -->
     <div class="nav-group nav-group-session">
       <span class="nav-group-label">Sesión</span>
@@ -166,43 +185,92 @@ $svgIcons = [
 </nav>
 
 <style>
+  /* ── Sesión ── */
   .nav-user {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: .8rem;
-    font-weight: 600;
-    color: var(--text2);
-    white-space: nowrap;
-    padding: 6px 8px;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 5px;
+    font-size: .8rem; font-weight: 600; color: var(--text2);
+    white-space: nowrap; padding: 6px 8px;
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis;
   }
   .nav-user svg { flex-shrink: 0; opacity: .7; }
   .nav-badge-rol {
-    font-size: .65rem;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 700;
-    white-space: nowrap;
+    font-size: .65rem; padding: 2px 8px;
+    border-radius: 20px; font-weight: 700; white-space: nowrap;
   }
   .nav-logout { color: var(--danger) !important; }
   .nav-logout:hover { background: rgba(231,76,60,.08) !important; }
   .nav-reg { color: var(--accent) !important; }
   .nav-reg:hover { background: rgba(245,166,35,.08) !important; }
   .nav-group-session { margin-left: auto; border-left: 1px solid var(--border); border-right: none; }
+
+  /* ── Botón notificaciones ciudadano ── */
+  .nav-notif-btn {
+    position: relative;
+    /* pequeño highlight diferenciador */
+    border: 1px solid transparent;
+    transition: color .15s, background .15s, border-color .15s !important;
+  }
+  .nav-notif-btn:hover {
+    border-color: rgba(245,166,35,.25) !important;
+  }
+  .nav-notif-btn.active {
+    color: var(--accent) !important;
+    background: rgba(245,166,35,.1) !important;
+    border-color: rgba(245,166,35,.4) !important;
+    border-radius: 7px 7px 0 0;
+    border-bottom: 2px solid var(--accent) !important;
+  }
+
+  /* Badge rojo de no leídas sobre la campana */
+  .nav-notif-icon-wrap { position: relative; display: flex; align-items: center; }
+  .nav-notif-badge {
+    position: absolute;
+    top: -6px; right: -7px;
+    min-width: 15px; height: 15px;
+    background: #e74c3c;
+    color: #fff;
+    font-size: .55rem; font-weight: 800;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+    box-shadow: 0 0 0 2px var(--surface);
+    animation: badgePop .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes badgePop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* Campana animada cuando hay no leídas */
+  .nav-notif-icon-wrap.has-new svg {
+    animation: bellShake 2.8s ease-in-out infinite;
+    transform-origin: top center;
+    color: var(--accent);
+    opacity: 1 !important;
+  }
+  @keyframes bellShake {
+    0%,55%,100% { transform: rotate(0deg); }
+    60%          { transform: rotate(14deg); }
+    65%          { transform: rotate(-12deg); }
+    70%          { transform: rotate(10deg); }
+    75%          { transform: rotate(-8deg); }
+    80%          { transform: rotate(5deg); }
+    85%          { transform: rotate(0deg); }
+  }
+
   @media (max-width: 900px) {
     .nav-group-session { margin-left: 0; border-left: none; border-top: 1px solid var(--border); }
+    .nav-group-notif-ciudadano { border-right: none; border-bottom: 1px solid var(--border); padding: .4rem .75rem .6rem; }
+    .nav-notif-badge { top: -4px; right: -5px; }
   }
 </style>
 
 <script>
 (function () {
+  /* ── Toggle mobile ── */
   const toggle = document.getElementById('navToggle');
   const body   = document.getElementById('navBody');
   const icon   = document.getElementById('navToggleIcon');
-
   const OPEN_ICON  = <?= json_encode($svgIcons['x']) ?>;
   const CLOSE_ICON = <?= json_encode($svgIcons['menu']) ?>;
 
@@ -210,13 +278,42 @@ $svgIcons = [
     const open = body.classList.toggle('open');
     icon.innerHTML = open ? OPEN_ICON : CLOSE_ICON;
   });
-
-  // Cerrar al hacer click fuera
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#mainNav')) {
       body.classList.remove('open');
       icon.innerHTML = CLOSE_ICON;
     }
   });
+
+  /* ── Badge de notificaciones (solo ciudadano) ── */
+  <?php if ($logueado && $rol === 'ciudadano'): ?>
+  const ROL = 'ciudadano';
+  const UID = <?= json_encode($usuario['id']) ?>;
+
+  async function fetchNoLeidas() {
+    try {
+      const res  = await fetch('../api/notificaciones.php?idUsuario=' + UID + '&leida=0');
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = Array.isArray(data) ? data.length : 0;
+      const badge    = document.getElementById('navNotifBadge');
+      const iconWrap = document.getElementById('navNotifIconWrap');
+      if (!badge || !iconWrap) return;
+      if (count > 0) {
+        badge.textContent  = count > 9 ? '9+' : count;
+        badge.style.display = 'flex';
+        iconWrap.classList.add('has-new');
+      } else {
+        badge.style.display = 'none';
+        iconWrap.classList.remove('has-new');
+      }
+    } catch(e) {}
+  }
+
+  // Cargar al inicio y cada 60 s (polling liviano)
+  fetchNoLeidas();
+  setInterval(fetchNoLeidas, 60000);
+  <?php endif; ?>
+
 })();
 </script>
