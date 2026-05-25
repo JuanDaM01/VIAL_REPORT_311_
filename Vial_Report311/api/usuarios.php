@@ -108,6 +108,7 @@ try {
                             cantidadReportes,
                             cargo,
                             nivelAcceso,
+                            idProveedor,
                             estadoCuenta,
                             fechaAsignacionRol,
                             fechaRegistro
@@ -146,6 +147,7 @@ try {
                             cantidadReportes,
                             cargo,
                             nivelAcceso,
+                            idProveedor,
                             estadoCuenta,
                             fechaAsignacionRol,
                             fechaRegistro
@@ -172,6 +174,7 @@ try {
                         cantidadReportes,
                         cargo,
                         nivelAcceso,
+                        idProveedor,
                         estadoCuenta,
                         fechaAsignacionRol,
                         fechaRegistro
@@ -232,11 +235,13 @@ try {
 
             $cargo = null;
             $nivelAcceso = null;
+            $idProveedor = null;
             $fechaAsignacionRol = null;
 
             if ($rol === 'funcionario' || $rol === 'administrador') {
                 $cargo = $data['cargo'] ?? null;
                 $nivelAcceso = $data['nivelAcceso'] ?? null;
+                $idProveedor = !empty($data['idProveedor']) ? (int) $data['idProveedor'] : null;
             }
 
             if ($rol === 'administrador') {
@@ -262,11 +267,12 @@ try {
                         cantidadReportes,
                         cargo,
                         nivelAcceso,
+                        idProveedor,
                         estadoCuenta,
                         fechaAsignacionRol
                     )
                     VALUES
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $hash = password_hash($data['contrasena'], PASSWORD_DEFAULT);
 
@@ -288,6 +294,7 @@ try {
                 $data['cantidadReportes'] ?? 0,
                 $cargo,
                 $nivelAcceso,
+                $idProveedor,
                 $estadoCuenta,
                 $fechaAsignacionRol
             ]);
@@ -352,11 +359,13 @@ try {
 
             $cargo = null;
             $nivelAcceso = null;
+            $idProveedor = null;
             $fechaAsignacionRol = $data['fechaAsignacionRol'] ?? null;
 
             if ($rol === 'funcionario' || $rol === 'administrador') {
                 $cargo = $data['cargo'] ?? null;
                 $nivelAcceso = $data['nivelAcceso'] ?? null;
+                $idProveedor = !empty($data['idProveedor']) ? (int) $data['idProveedor'] : null;
             }
 
             if ($rol === 'administrador') {
@@ -387,6 +396,7 @@ try {
                         tipoRegistro = ?,
                         cargo = ?,
                         nivelAcceso = ?,
+                        idProveedor = ?,
                         estadoCuenta = ?,
                         fechaAsignacionRol = ?
                     WHERE idUsuario = ?";
@@ -407,6 +417,7 @@ try {
                 $tipoRegistro,
                 $cargo,
                 $nivelAcceso,
+                $idProveedor,
                 $estadoCuenta,
                 $fechaAsignacionRol,
                 $id

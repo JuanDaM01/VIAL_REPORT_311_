@@ -15,11 +15,15 @@ $usuario  = usuarioSesion();
 $urlInicio = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
 $slugInicio = ($rol === 'administrador') ? 'index' : 'reportes';
 
-// Todos ven Inicio y Reportes públicos, pero ciudadano con menú simplificado sin redundancia
+// Todos ven Inicio y Reportes públicos, pero ciudadano y funcionario con menú simplificado sin redundancia ni duplicidad
 $itemsComun = [];
 if ($rol === 'ciudadano') {
     $itemsComun = [
         ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Inicio']
+    ];
+} elseif ($rol === 'funcionario') {
+    $itemsComun = [
+        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Panel de Trabajo']
     ];
 } else {
     $itemsComun = [
@@ -36,9 +40,9 @@ $gruposComun = [
 ];
 
 $gruposOperaciones = [
-    'label' => 'Operaciones',
+    'label' => ($rol === 'funcionario') ? 'Gestión de Casos' : 'Operaciones',
     'items' => [
-        ['url' => URL_TICKETS,     'slug' => 'tickets',   'icon' => 'ticket',    'label' => 'Tickets'],
+        ['url' => URL_TICKETS,     'slug' => 'tickets',   'icon' => 'ticket',    'label' => ($rol === 'funcionario') ? 'Mis Tickets' : 'Tickets'],
         ['url' => URL_EVIDENCIAS,  'slug' => 'evidencias','icon' => 'paperclip', 'label' => 'Evidencias'],
     ],
 ];

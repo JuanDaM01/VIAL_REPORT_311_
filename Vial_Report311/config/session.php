@@ -33,10 +33,11 @@ function rolActual(): string {
 /** Datos completos del usuario en sesión */
 function usuarioSesion(): array {
     return [
-        'id'      => $_SESSION['usuario_id'] ?? null,
-        'nombre'  => $_SESSION['nombre']     ?? '',
-        'email'   => $_SESSION['email']      ?? '',
-        'rol'     => $_SESSION['rol']        ?? '',
+        'id'          => $_SESSION['usuario_id']  ?? null,
+        'nombre'      => $_SESSION['nombre']      ?? '',
+        'email'       => $_SESSION['email']       ?? '',
+        'rol'         => $_SESSION['rol']         ?? '',
+        'idProveedor' => $_SESSION['idProveedor'] ?? null,
     ];
 }
 
@@ -63,10 +64,11 @@ function requireRole(array $rolesPermitidos = []): void {
  */
 function iniciarSesion(array $usuario): void {
     session_regenerate_id(true);   // previene session fixation
-    $_SESSION['usuario_id'] = $usuario['idUsuario'];
-    $_SESSION['nombre']     = trim($usuario['nombres'] . ' ' . $usuario['apellido_1']);
-    $_SESSION['email']      = $usuario['email'];
-    $_SESSION['rol']        = $usuario['rol'];
+    $_SESSION['usuario_id']  = $usuario['idUsuario'];
+    $_SESSION['nombre']      = trim($usuario['nombres'] . ' ' . $usuario['apellido_1']);
+    $_SESSION['email']       = $usuario['email'];
+    $_SESSION['rol']         = $usuario['rol'];
+    $_SESSION['idProveedor'] = $usuario['idProveedor'] ?? null;
 }
 
 /**

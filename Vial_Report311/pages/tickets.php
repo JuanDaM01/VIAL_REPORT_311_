@@ -13,8 +13,10 @@
 
 <div class="page">
   <div class="page-header">
-    <h2>Gestión de <span>Tickets</span></h2>
-    <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo ticket</button>
+    <h2><?= ($rol === 'funcionario') ? 'Mis <span>Tickets</span>' : 'Gestión de <span>Tickets</span>' ?></h2>
+    <?php if ($rol !== 'funcionario'): ?>
+      <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo ticket</button>
+    <?php endif; ?>
   </div>
 
   <div class="table-wrap">
@@ -118,6 +120,9 @@
 <div id="toast"></div>
 
 <script>
+const USER_ROLE = '<?= rolActual() ?>';
+const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
+
 const API_TICKETS = '../api/tickets.php';
 const API_REPORTES = '../api/reportes.php';
 const API_CATALOGOS = '../api/catalogos.php?recurso=todo';
@@ -247,12 +252,17 @@ async function cargar() {
     return;
   }
 
-  if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No hay tickets registrados.</td></tr>';
+  let ticketsFiltrados = data;
+  if (USER_ROLE === 'funcionario') {
+    ticketsFiltrados = data.filter(t => t.idFuncionario == USER_ID);
+  }
+
+  if (!ticketsFiltrados.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No se encontraron tickets.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = data.map(t => {
+  tbody.innerHTML = ticketsFiltrados.map(t => {
     const ciudadano = t.esAnonimo == 1
       ? '<span class="badge badge-anonimo">Anónimo</span>'
       : escapeHtml(t.ciudadano ?? '—');
@@ -299,8 +309,8 @@ async function cargar() {
         </td>
 
         <td class="td-acc">
-          <button class="btn-edit" onclick="editar(${t.idTicket})">✏ Editar</button>
-          <button class="btn-del" onclick="eliminar(${t.idTicket}, '${escapeHtml(t.numeroCaso)}')">🗑 Eliminar</button>
+          <button class="btn-edit" onclick="editar(${t.idTicket})">${USER_ROLE === 'funcionario' ? '🛠 Gestionar' : '✏ Editar'}</button>
+          ${USER_ROLE !== 'funcionario' ? `<button class="btn-del" onclick="eliminar(${t.idTicket}, '${escapeHtml(t.numeroCaso)}')">🗑 Eliminar</button>` : ''}
         </td>
       </tr>
     `;
@@ -332,7 +342,7 @@ async function editar(id) {
     return;
   }
 
-  document.getElementById('modalTit').textContent = 'Editar Ticket';
+  document.getElementById('modalTit').textContent = USER_ROLE === 'funcionario' ? '🛠 Gestionar Ticket' : 'Editar Ticket';
 
   document.getElementById('tid').value = t.idTicket;
   document.getElementById('numeroCaso').value = t.numeroCaso ?? '';
@@ -345,6 +355,14 @@ async function editar(id) {
   llenarReportes(t.idReporte);
   llenarProveedores(t.idProveedor);
   llenarFuncionarios(t.idFuncionario);
+
+  if (USER_ROLE === 'funcionario') {
+    document.getElementById('idReporte').disabled = true;
+    document.getElementById('numeroCaso').disabled = true;
+  } else {
+    document.getElementById('idReporte').disabled = false;
+    document.getElementById('numeroCaso').disabled = false;
+  }
 
   document.getElementById('modal').classList.add('open');
 }

@@ -13,8 +13,10 @@
 
 <div class="page">
   <div class="page-header">
-    <h2>Gestión de <span>Evidencias</span></h2>
-    <button class="btn btn-primary" onclick="abrirModal()">+ Nueva evidencia</button>
+    <h2><?= ($rol === 'funcionario') ? 'Evidencias de <span>Mis Casos</span>' : 'Gestión de <span>Evidencias</span>' ?></h2>
+    <?php if ($rol !== 'funcionario'): ?>
+      <button class="btn btn-primary" onclick="abrirModal()">+ Nueva evidencia</button>
+    <?php endif; ?>
   </div>
 
   <div class="table-wrap">
@@ -24,7 +26,6 @@
           <th>ID</th>
           <th>Reporte</th>
           <th>Archivo</th>
-          <th>Tipo</th>
           <th>Tamaño</th>
           <th>Vista</th>
           <th>Acciones</th>
@@ -61,20 +62,9 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" style="width: 100%;">
           <label>Tamaño en KB</label>
           <input type="number" id="tamanoKb" min="1" placeholder="Ej: 480"/>
-        </div>
-
-        <div class="form-group">
-          <label>Tipo de contenido</label>
-          <select id="contenido">
-            <option value="">No especificado</option>
-            <option value="image/jpeg">image/jpeg</option>
-            <option value="image/png">image/png</option>
-            <option value="image/webp">image/webp</option>
-            <option value="application/pdf">application/pdf</option>
-          </select>
         </div>
       </div>
     </div>
@@ -89,6 +79,9 @@
 <div id="toast"></div>
 
 <script>
+const USER_ROLE = '<?= rolActual() ?>';
+const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
+
 const API_EVIDENCIAS = '../api/evidencias.php';
 const API_REPORTES = '../api/reportes.php';
 
@@ -123,11 +116,7 @@ function llenarReportes(seleccionado = '') {
     `).join('');
 }
 
-function esImagen(contenido, url) {
-  if (contenido && contenido.startsWith('image/')) {
-    return true;
-  }
-
+function esImagen(url) {
   return /\.(jpg|jpeg|png|webp|gif)$/i.test(url);
 }
 
@@ -136,19 +125,19 @@ async function cargar() {
   const data = await res.json();
   const tbody = document.getElementById('tbody');
 
-  if (!res.ok || data.error) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Error al cargar evidencias.</td></tr>';
-    toast(data.error ?? 'Error al cargar evidencias', false);
+  let evidenciasFiltradas = data;
+  if (USER_ROLE === 'funcionario') {
+    const misReportesIds = new Set(reportes.filter(r => r.idFuncionario == USER_ID).map(r => Number(r.idReporte)));
+    evidenciasFiltradas = data.filter(e => misReportesIds.has(Number(e.idReporte)));
+  }
+
+  if (!evidenciasFiltradas.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No hay evidencias registradas.</td></tr>';
     return;
   }
 
-  if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No hay evidencias registradas.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = data.map(e => {
-    const vista = esImagen(e.contenido, e.urlArchivo)
+  tbody.innerHTML = evidenciasFiltradas.map(e => {
+    const vista = esImagen(e.urlArchivo)
       ? `<img src="../${escapeHtml(e.urlArchivo)}" alt="Evidencia" style="width:72px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"/>`
       : `<a href="../${escapeHtml(e.urlArchivo)}" target="_blank">Abrir archivo</a>`;
 
@@ -166,19 +155,13 @@ async function cargar() {
           <small>${escapeHtml(e.urlArchivo)}</small>
         </td>
 
-        <td>
-          <span class="badge badge-en_proceso">
-            ${escapeHtml(e.contenido ?? 'archivo')}
-          </span>
-        </td>
-
         <td>${escapeHtml(e.tamanoKb ? e.tamanoKb + ' KB' : '—')}</td>
 
         <td>${vista}</td>
 
         <td class="td-acc">
-          <button class="btn-edit" onclick="editar(${e.idEvidencia})">✏ Editar</button>
-          <button class="btn-del" onclick="eliminar(${e.idEvidencia})">🗑 Eliminar</button>
+          <button class="btn-edit" onclick="editar(${e.idEvidencia})">${USER_ROLE === 'funcionario' ? '🔍 Ver Detalle' : '✏ Editar'}</button>
+          ${USER_ROLE !== 'funcionario' ? `<button class="btn-del" onclick="eliminar(${e.idEvidencia})">🗑 Eliminar</button>` : ''}
         </td>
       </tr>
     `;
@@ -192,7 +175,6 @@ function abrirModal() {
   document.getElementById('idReporte').value = '';
   document.getElementById('urlArchivo').value = '';
   document.getElementById('tamanoKb').value = '';
-  document.getElementById('contenido').value = '';
 
   document.getElementById('modal').classList.add('open');
 }
@@ -206,13 +188,26 @@ async function editar(id) {
     return;
   }
 
-  document.getElementById('modalTit').textContent = 'Editar Evidencia';
+  document.getElementById('modalTit').textContent = USER_ROLE === 'funcionario' ? 'Detalle de Evidencia' : 'Editar Evidencia';
 
   document.getElementById('eid').value = e.idEvidencia;
   llenarReportes(e.idReporte);
   document.getElementById('urlArchivo').value = e.urlArchivo ?? '';
   document.getElementById('tamanoKb').value = e.tamanoKb ?? '';
-  document.getElementById('contenido').value = e.contenido ?? '';
+
+  if (USER_ROLE === 'funcionario') {
+    document.getElementById('idReporte').disabled = true;
+    document.getElementById('urlArchivo').disabled = true;
+    document.getElementById('tamanoKb').disabled = true;
+    const saveBtn = document.querySelector('#modal .modal-foot .btn-primary');
+    if (saveBtn) saveBtn.style.display = 'none';
+  } else {
+    document.getElementById('idReporte').disabled = false;
+    document.getElementById('urlArchivo').disabled = false;
+    document.getElementById('tamanoKb').disabled = false;
+    const saveBtn = document.querySelector('#modal .modal-foot .btn-primary');
+    if (saveBtn) saveBtn.style.display = 'inline-block';
+  }
 
   document.getElementById('modal').classList.add('open');
 }
@@ -231,9 +226,7 @@ function construirBody() {
 
     tamanoKb: document.getElementById('tamanoKb').value
       ? Number(document.getElementById('tamanoKb').value)
-      : null,
-
-    contenido: document.getElementById('contenido').value || null
+      : null
   };
 }
 

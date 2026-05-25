@@ -83,6 +83,7 @@ CREATE TABLE usuario (
     -- Solo funcionario / administrador
     cargo                 VARCHAR(100),
     nivelAcceso           TINYINT UNSIGNED,
+    idProveedor           INT DEFAULT NULL,
 
     -- Solo administrador
     estadoCuenta          ENUM('activo','inactivo','suspendido'),
@@ -91,7 +92,8 @@ CREATE TABLE usuario (
     fechaRegistro         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     INDEX idx_usuario_rol   (rol),
-    INDEX idx_usuario_email (email)
+    INDEX idx_usuario_email (email),
+    FOREIGN KEY (idProveedor) REFERENCES proveedor(idProveedor) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -242,7 +244,6 @@ CREATE TABLE evidencia (
     idEvidencia INT AUTO_INCREMENT PRIMARY KEY,
     urlArchivo  VARCHAR(500) NOT NULL,
     tamanoKb    INT UNSIGNED,
-    contenido   VARCHAR(100),           -- MIME type
     idReporte   INT NOT NULL,
 
     FOREIGN KEY (idReporte)
@@ -375,10 +376,10 @@ VALUES
   ('Ana',   'Rodríguez','Paz',  'ana@email.com',   MD5('pass4'),'3009876543',45,'ciudadano',  'facebook',1);
 
 INSERT INTO usuario
-  (nombres,apellido_1,apellido_2,email,contrasena,telefono,edad,rol,tipoRegistro,cargo,nivelAcceso,estadoCuenta,fechaAsignacionRol)
+  (nombres,apellido_1,apellido_2,email,contrasena,telefono,edad,rol,tipoRegistro,cargo,nivelAcceso,idProveedor,estadoCuenta,fechaAsignacionRol)
 VALUES
-  ('Luis', 'Pérez', 'Mora', 'luis.funcionario@email.com',MD5('pass5'),'3125551234',31,'funcionario',  'local','Inspector vial',2,NULL,NULL),
-  ('Sofía','Herrera','Ríos','sofia.admin@email.com',     MD5('pass6'),'3187772345',27,'administrador','local','Administradora del sistema',5,'activo',NOW());
+  ('Luis', 'Pérez', 'Mora', 'luis.funcionario@email.com',MD5('pass5'),'3125551234',31,'funcionario',  'local','Inspector vial',2,1,NULL,NULL),
+  ('Sofía','Herrera','Ríos','sofia.admin@email.com',     MD5('pass6'),'3187772345',27,'administrador','local','Administradora del sistema',5,NULL,'activo',NOW());
 
 -- Reportes
 INSERT INTO reporte (titulo, descripcion, estado, esAnonimo, totalVotos, idUsuario, idUbicacion, idCategoria)
@@ -399,12 +400,12 @@ VALUES
   ('VR311-000005','media', 'abierto',   NOW(),NULL, 5,1,5);
 
 -- Evidencias
-INSERT INTO evidencia (urlArchivo, tamanoKb, contenido, idReporte)
+INSERT INTO evidencia (urlArchivo, tamanoKb, idReporte)
 VALUES
-  ('uploads/evidencias/hueco_parque.jpg',       512,'image/jpeg',1),
-  ('uploads/evidencias/semaforo_interseccion.jpg',438,'image/jpeg',2),
-  ('uploads/evidencias/anden_escombros.jpg',    390,'image/jpeg',3),
-  ('uploads/evidencias/alumbrado_apagado.jpg',  610,'image/jpeg',4);
+  ('uploads/evidencias/hueco_parque.jpg',       512,1),
+  ('uploads/evidencias/semaforo_interseccion.jpg',438,2),
+  ('uploads/evidencias/anden_escombros.jpg',    390,3),
+  ('uploads/evidencias/alumbrado_apagado.jpg',  610,4);
 
 -- Comentarios
 INSERT INTO comentario (contenido, idReporte, idUsuario)

@@ -10,6 +10,7 @@
     /* ── Combobox Ubicación ── */
     .combobox-wrap {
       position: relative;
+      z-index: 10;
     }
     .combobox-wrap input[type="text"] {
       width: 100%;
@@ -207,8 +208,80 @@
       to   { transform: translateY(-10px) rotate(5deg); }
     }
     
-    /* Pestañas Ciudadano */
-    .citizen-tabs {
+    /* ── Portal Funcionario ── */
+    body.role-funcionario .page-header {
+      display: none !important;
+    }
+    body.role-funcionario #grp-usuario {
+      display: none !important;
+    }
+    .funcionario-hero {
+      display: none;
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1520 100%);
+      border: 1px solid rgba(99,179,237,.2);
+      border-radius: var(--radius-lg);
+      padding: 2.2rem 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 24px rgba(99,179,237,.08);
+    }
+    body.role-funcionario .funcionario-hero {
+      display: flex;
+    }
+    .funcionario-hero::before {
+      content: '';
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,179,237,.07) 0%, transparent 70%);
+      top: -120px;
+      right: -60px;
+      pointer-events: none;
+    }
+    .funcionario-hero h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      margin-bottom: .5rem;
+      letter-spacing: -.5px;
+      color: var(--text);
+    }
+    .funcionario-hero h1 span {
+      color: #63b3ed;
+    }
+    .funcionario-hero p {
+      color: var(--text2);
+      font-size: .95rem;
+      max-width: 560px;
+      margin-bottom: 0;
+      line-height: 1.6;
+    }
+    .funcionario-hero .hero-decor-func {
+      font-size: 4rem;
+      opacity: .8;
+      animation: float 5s ease-in-out infinite alternate;
+      user-select: none;
+    }
+    .stats-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(99,179,237,.1);
+      border: 1px solid rgba(99,179,237,.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: .78rem;
+      font-weight: 700;
+      color: #63b3ed;
+      margin-top: .8rem;
+    }
+
+    /* Pestañas Ciudadano y Funcionario */
+    .citizen-tabs,
+    .funcionario-tabs {
       display: none;
       gap: .5rem;
       margin-bottom: 1.2rem;
@@ -216,6 +289,9 @@
       padding-bottom: .5rem;
     }
     body.role-ciudadano .citizen-tabs {
+      display: flex;
+    }
+    body.role-funcionario .funcionario-tabs {
       display: flex;
     }
     .tab-btn {
@@ -235,6 +311,9 @@
     .tab-btn.active {
       color: var(--accent);
     }
+    body.role-funcionario .tab-btn.active {
+      color: #63b3ed;
+    }
     .tab-btn.active::after {
       content: '';
       position: absolute;
@@ -244,6 +323,55 @@
       height: 3px;
       background: var(--accent);
       border-radius: 3px 3px 0 0;
+    }
+    body.role-funcionario .tab-btn.active::after {
+      background: #63b3ed;
+    }
+
+    /* Campos readonly en modal para Funcionario */
+    .field-readonly {
+      opacity: .65;
+      pointer-events: none;
+    }
+    .field-readonly input,
+    .field-readonly textarea,
+    .field-readonly select {
+      background: rgba(255,255,255,.03) !important;
+      cursor: not-allowed !important;
+      border-style: dashed !important;
+    }
+    .readonly-badge {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      color: #63b3ed;
+      background: rgba(99,179,237,.1);
+      border: 1px solid rgba(99,179,237,.2);
+      border-radius: 6px;
+      padding: 1px 7px;
+      margin-left: 6px;
+      vertical-align: middle;
+      letter-spacing: .03em;
+    }
+    /* Botón gestionar */
+    .btn-manage {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      background: rgba(99,179,237,.1);
+      color: #63b3ed;
+      border: 1px solid rgba(99,179,237,.25);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .18s, border-color .18s, transform .15s;
+    }
+    .btn-manage:hover {
+      background: rgba(99,179,237,.2);
+      border-color: rgba(99,179,237,.5);
+      transform: translateY(-1px);
     }
     
     
@@ -374,6 +502,16 @@
     <div class="hero-decor">🚧</div>
   </div>
 
+  <!-- Hero Banner para Funcionario -->
+  <div id="funcionarioHero" class="funcionario-hero">
+    <div class="hero-content">
+      <h1>Panel de <span id="funcName"></span></h1>
+      <p>Gestiona los casos viales asignados a tu cargo. Actualiza el estado, prioridad y proveedor de cada reporte para mantener la ciudad en orden.</p>
+      <div class="stats-pill" id="funcStatsPill">⚡ Cargando casos asignados...</div>
+    </div>
+    <div class="hero-decor-func">🛠️</div>
+  </div>
+
   <div class="page-header">
     <h2>Gestión de <span>Reportes</span></h2>
     <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo reporte</button>
@@ -383,6 +521,12 @@
   <div class="citizen-tabs" id="citizenTabs">
     <button class="tab-btn active" onclick="filtrarVista('mis')">Mis Reportes</button>
     <button class="tab-btn" onclick="filtrarVista('todos')">Todos los Reportes</button>
+  </div>
+
+  <!-- Pestañas de Filtrado para Funcionario -->
+  <div class="funcionario-tabs" id="funcionarioTabs">
+    <button class="tab-btn active" onclick="filtrarVista('mis')">📋 Mis Casos Asignados</button>
+    <button class="tab-btn" onclick="filtrarVista('todos')">🌐 Todos los Casos</button>
   </div>
 
   <div class="table-wrap">
@@ -505,20 +649,9 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" style="width: 100%;">
           <label>Tamaño evidencia (KB)</label>
           <input type="number" id="tamanoKb" min="1" placeholder="Ej: 480"/>
-        </div>
-
-        <div class="form-group">
-          <label>Tipo de contenido</label>
-          <select id="contenido">
-            <option value="">No especificado</option>
-            <option value="image/jpeg">image/jpeg</option>
-            <option value="image/png">image/png</option>
-            <option value="image/webp">image/webp</option>
-            <option value="application/pdf">application/pdf</option>
-          </select>
         </div>
       </div>
 
@@ -895,8 +1028,12 @@ async function cargar() {
 function filtrarVista(tipo) {
   vistaActual = tipo;
 
-  const btns = document.querySelectorAll('#citizenTabs .tab-btn');
-  btns.forEach(btn => {
+  // Actualizar tabs activos según rol
+  const tabsContainer = USER_ROLE === 'funcionario'
+    ? document.querySelectorAll('#funcionarioTabs .tab-btn')
+    : document.querySelectorAll('#citizenTabs .tab-btn');
+
+  tabsContainer.forEach(btn => {
     if (btn.getAttribute('onclick').includes(tipo)) {
       btn.classList.add('active');
     } else {
@@ -912,10 +1049,21 @@ function renderizarTabla() {
 
   let reportesFiltrados = todosLosReportes;
 
-  // Si es ciudadano, filtramos según la pestaña seleccionada
+  // Filtrar según rol y pestaña activa
   if (USER_ROLE === 'ciudadano') {
     if (vistaActual === 'mis') {
       reportesFiltrados = todosLosReportes.filter(r => r.idUsuario == USER_ID);
+    }
+  } else if (USER_ROLE === 'funcionario') {
+    if (vistaActual === 'mis') {
+      // Casos asignados a este funcionario
+      reportesFiltrados = todosLosReportes.filter(r => r.idFuncionario == USER_ID);
+    }
+    // Actualizar pill de estadísticas
+    const pill = document.getElementById('funcStatsPill');
+    if (pill) {
+      const misCasos = todosLosReportes.filter(r => r.idFuncionario == USER_ID).length;
+      pill.textContent = `⚡ ${misCasos} caso${misCasos !== 1 ? 's' : ''} asignado${misCasos !== 1 ? 's' : ''}`;
     }
   }
 
@@ -947,11 +1095,15 @@ function renderizarTabla() {
     // ── Columna Acciones según rol y pestaña activa ────────────
     let accionesHtml = '';
 
-    if (USER_ROLE === 'administrador' || USER_ROLE === 'funcionario') {
-      // Admin / Funcionario: siempre puede editar y eliminar
+    if (USER_ROLE === 'administrador') {
       accionesHtml = `
         <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
         <button class="btn-del"  onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
+      `;
+    } else if (USER_ROLE === 'funcionario') {
+      // Funcionario: sólo gestionar (sin eliminar)
+      accionesHtml = `
+        <button class="btn-manage" onclick="editar(${r.idReporte})">🛠 Gestionar Caso</button>
       `;
     } else if (USER_ROLE === 'ciudadano') {
       if (vistaActual === 'mis') {
@@ -1039,7 +1191,6 @@ function abrirModal() {
   document.getElementById('idFuncionario').value = '';
   document.getElementById('urlArchivo').value = '';
   document.getElementById('tamanoKb').value = '';
-  document.getElementById('contenido').value = '';
   document.getElementById('esAnonimo').checked = false;
 
   controlarAnonimo();
@@ -1056,7 +1207,9 @@ async function editar(id) {
     return;
   }
 
-  document.getElementById('modalTit').textContent = 'Editar Reporte';
+  // Titulo del modal según rol
+  document.getElementById('modalTit').textContent =
+    USER_ROLE === 'funcionario' ? '🛠 Gestionar Caso' : 'Editar Reporte';
 
   document.getElementById('rid').value = r.idReporte;
   document.getElementById('titulo').value = r.titulo ?? '';
@@ -1100,9 +1253,44 @@ async function editar(id) {
   document.getElementById('idFuncionario').value = r.idFuncionario ?? '';
   document.getElementById('urlArchivo').value = '';
   document.getElementById('tamanoKb').value = '';
-  document.getElementById('contenido').value = '';
 
   document.getElementById('esAnonimo').checked = r.esAnonimo == 1;
+
+  // ── Bloquear campos del ciudadano si es Funcionario ──────────
+  const camposCiudadano = ['titulo', 'descripcion', 'idCategoria', 'ubicacionInput', 'urlArchivo', 'tamanoKb', 'esAnonimo'];
+  const gruposReadonly = ['ubicacionCombobox'];
+
+  if (USER_ROLE === 'funcionario') {
+    camposCiudadano.forEach(fid => {
+      const el = document.getElementById(fid);
+      if (el) el.disabled = true;
+    });
+    gruposReadonly.forEach(gid => {
+      const el = document.getElementById(gid);
+      if (el) el.classList.add('field-readonly');
+    });
+    // Agregar badge a la etiqueta del modal
+    document.querySelectorAll('#modal .form-group label').forEach(lbl => {
+      const fid = lbl.closest('.form-group')?.querySelector('input,textarea,select')?.id ?? '';
+      const esCiudadano = camposCiudadano.includes(fid) || lbl.closest('.form-group')?.id === 'grp-cat';
+      if (camposCiudadano.some(f => lbl.closest('.form-group')?.querySelector(`#${f}`))) {
+        if (!lbl.querySelector('.readonly-badge')) {
+          lbl.insertAdjacentHTML('beforeend', '<span class="readonly-badge">Solo lectura</span>');
+        }
+      }
+    });
+  } else {
+    // Restaurar campos si no es funcionario
+    camposCiudadano.forEach(fid => {
+      const el = document.getElementById(fid);
+      if (el) el.disabled = false;
+    });
+    gruposReadonly.forEach(gid => {
+      const el = document.getElementById(gid);
+      if (el) el.classList.remove('field-readonly');
+    });
+    document.querySelectorAll('#modal .readonly-badge').forEach(b => b.remove());
+  }
 
   controlarAnonimo();
 
@@ -1243,7 +1431,6 @@ async function guardar() {
   const idFuncionario = document.getElementById('idFuncionario').value;
   const urlArchivo = document.getElementById('urlArchivo').value.trim();
   const tamanoKb = document.getElementById('tamanoKb').value;
-  const contenido = document.getElementById('contenido').value;
 
   if (prioridad) {
     body.prioridad = prioridad;
@@ -1260,7 +1447,6 @@ async function guardar() {
   if (urlArchivo) {
     body.urlArchivo = urlArchivo;
     body.tamanoKb = tamanoKb ? Number(tamanoKb) : null;
-    body.contenido = contenido || null;
   }
 
   if (!validarFormulario(body)) {
@@ -1476,9 +1662,16 @@ function toast(msg, ok) {
 
 async function iniciar() {
   const nameEl = document.getElementById('citizenName');
-  if (nameEl) {
-    nameEl.textContent = USER_NAME;
+  if (nameEl) nameEl.textContent = USER_NAME;
+
+  const funcNameEl = document.getElementById('funcName');
+  if (funcNameEl) funcNameEl.textContent = USER_NAME;
+
+  // Funcionario empieza en pestaña "mis casos"
+  if (USER_ROLE === 'funcionario') {
+    vistaActual = 'mis';
   }
+
   await cargarMisVotos();
   await cargarCatalogos();
   await cargar();

@@ -149,8 +149,7 @@ function guardarEvidencias(PDO $pdo, int $idReporte, array $data): void
     if (!empty($data['urlArchivo'])) {
         $evidencias[] = [
             'urlArchivo' => $data['urlArchivo'],
-            'tamanoKb' => $data['tamanoKb'] ?? null,
-            'contenido' => $data['contenido'] ?? null
+            'tamanoKb' => $data['tamanoKb'] ?? null
         ];
     }
 
@@ -160,14 +159,13 @@ function guardarEvidencias(PDO $pdo, int $idReporte, array $data): void
         }
 
         $sql = "INSERT INTO evidencia
-                    (urlArchivo, tamanoKb, contenido, idReporte)
-                VALUES (?, ?, ?, ?)";
+                    (urlArchivo, tamanoKb, idReporte)
+                VALUES (?, ?, ?)";
 
         $st = $pdo->prepare($sql);
         $st->execute([
             $evidencia['urlArchivo'],
             $evidencia['tamanoKb'] ?? null,
-            $evidencia['contenido'] ?? null,
             $idReporte
         ]);
     }
@@ -270,7 +268,7 @@ t.idFuncionario,
                     responder(['error' => 'Reporte no encontrado'], 404);
                 }
 
-                $sqlEvidencias = "SELECT idEvidencia, urlArchivo, tamanoKb, contenido
+                $sqlEvidencias = "SELECT idEvidencia, urlArchivo, tamanoKb
                                   FROM evidencia
                                   WHERE idReporte = ?
                                   ORDER BY idEvidencia";

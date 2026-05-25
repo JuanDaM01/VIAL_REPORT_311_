@@ -63,7 +63,6 @@ try {
                             e.idEvidencia,
                             e.urlArchivo,
                             e.tamanoKb,
-                            e.contenido,
                             e.idReporte,
                             r.titulo AS reporte
                         FROM evidencia e
@@ -94,7 +93,6 @@ try {
                         e.idEvidencia,
                         e.urlArchivo,
                         e.tamanoKb,
-                        e.contenido,
                         e.idReporte,
                         r.titulo AS reporte,
                         r.estado AS estadoReporte
@@ -132,14 +130,13 @@ try {
             }
 
             $sql = "INSERT INTO evidencia
-                        (urlArchivo, tamanoKb, contenido, idReporte)
-                    VALUES (?, ?, ?, ?)";
+                        (urlArchivo, tamanoKb, idReporte)
+                    VALUES (?, ?, ?)";
 
             $st = $pdo->prepare($sql);
             $st->execute([
                 trim($data['urlArchivo']),
                 $data['tamanoKb'] ?? null,
-                $data['contenido'] ?? null,
                 $idReporte
             ]);
 
@@ -177,7 +174,6 @@ try {
             $sql = "UPDATE evidencia
                     SET urlArchivo = ?,
                         tamanoKb = ?,
-                        contenido = ?,
                         idReporte = ?
                     WHERE idEvidencia = ?";
 
@@ -185,7 +181,6 @@ try {
             $st->execute([
                 trim($data['urlArchivo']),
                 $data['tamanoKb'] ?? null,
-                $data['contenido'] ?? null,
                 $idReporte,
                 $id
             ]);
