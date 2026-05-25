@@ -1,6 +1,6 @@
 <?php
 // api/notificaciones.php
-// CRUD de Notificaciones alineado con el diagrama ER corregido
+// CRUD de Notificaciones
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');

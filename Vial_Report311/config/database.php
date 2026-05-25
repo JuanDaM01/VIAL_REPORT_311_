@@ -1,18 +1,17 @@
 <?php
 // config/database.php
-// Ajusta estos valores según tu instalación de MySQL/MariaDB
 
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3307');
 define('DB_NAME', 'vialreport311');
-define('DB_USER', 'root');       // Cambia por tu usuario
-define('DB_PASS', '');           // Cambia por tu contraseña
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
 function getConnection(): PDO {
     static $pdo = null;
     if ($pdo === null) {
         $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT
-             . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            . ";dbname=" . DB_NAME . ";charset=utf8mb4";
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

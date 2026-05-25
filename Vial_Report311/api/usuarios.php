@@ -1,6 +1,6 @@
 <?php
 // api/usuarios.php
-// CRUD de Usuario alineado con el diagrama ER corregido
+// CRUD de Usuario
 // Maneja ciudadano, funcionario y administrador mediante el campo rol
 
 header('Content-Type: application/json; charset=utf-8');

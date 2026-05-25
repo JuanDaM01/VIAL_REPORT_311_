@@ -42,14 +42,14 @@ function obtenerUbicaciones(PDO $pdo): array
 function obtenerCiudadanos(PDO $pdo): array
 {
     $sql = "SELECT idUsuario,
-                   nombres,
-                   apellido_1,
-                   apellido_2,
-                   email,
-                   telefono
+                    nombres,
+                    apellido_1,
+                    apellido_2,
+                    email,
+                    telefono
             FROM usuario
             WHERE rol = 'ciudadano'
-              AND activo = 1
+                AND activo = 1
             ORDER BY nombres, apellido_1";
 
     return $pdo->query($sql)->fetchAll();
@@ -58,15 +58,15 @@ function obtenerCiudadanos(PDO $pdo): array
 function obtenerFuncionarios(PDO $pdo): array
 {
     $sql = "SELECT idUsuario,
-                   nombres,
-                   apellido_1,
-                   apellido_2,
-                   email,
-                   cargo,
-                   nivelAcceso
+                    nombres,
+                    apellido_1,
+                    apellido_2,
+                    email,
+                    cargo,
+                    nivelAcceso
             FROM usuario
             WHERE rol = 'funcionario'
-              AND activo = 1
+                AND activo = 1
             ORDER BY nombres, apellido_1";
 
     return $pdo->query($sql)->fetchAll();
@@ -75,11 +75,11 @@ function obtenerFuncionarios(PDO $pdo): array
 function obtenerProveedores(PDO $pdo): array
 {
     $sql = "SELECT idProveedor,
-                   nombreEntidad,
-                   telefono,
-                   correo,
-                   nivel,
-                   solucionesResueltas
+                    nombreEntidad,
+                    telefono,
+                    correo,
+                    nivel,
+                    solucionesResueltas
             FROM proveedor
             ORDER BY nombreEntidad";
 

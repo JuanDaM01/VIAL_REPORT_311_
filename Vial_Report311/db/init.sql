@@ -1,18 +1,5 @@
 -- ============================================================
 -- VialReport311 — DDL MySQL/MariaDB  v2
--- Modelo alineado con el diagrama ER corregido (anotaciones lápiz)
---
--- Correcciones aplicadas:
---   1. Entidad NOTIFICACION como entidad propia (faltaba)
---   2. Relación DISPARA (tachada Ubicacion–AlertaLocal): AlertaLocal → Notificacion → Usuario
---   3. Relación VOTAR N:N separada en tabla votar
---   4. Eliminada relación directa VOTO en reporte (contador derivado via trigger)
---   5. Campo 'apellidos' eliminado (redundante; ya existen apellido_1 y apellido_2)
---   6. Campo 'nombre_1' y 'nombre_2' unificados en 'nombres'
---   7. Comentario vinculado explícitamente a Usuario (FK idUsuario)
---   8. Evidencia sin relación directa a Usuario (adjunta al Reporte)
---   9. Tabla proveedor_categoria_ubicacion para la relación GESTIONA tripartita
---  10. Passwords con password_hash (bcrypt) en inserts de prueba
 -- ============================================================
 
 DROP DATABASE IF EXISTS vialreport311;
@@ -25,7 +12,6 @@ USE vialreport311;
 
 -- ============================================================
 -- UBICACION
--- (definida antes de usuario y reporte por dependencias FK)
 -- ============================================================
 
 CREATE TABLE ubicacion (
@@ -51,8 +37,6 @@ CREATE TABLE categoria (
 -- ============================================================
 -- USUARIO
 -- Entidad única con campo rol (ciudadano | funcionario | administrador)
--- Elimina tablas separadas Ciudadano / Funcionario / Administrador
--- manteniendo los atributos diferenciados en columnas nullables
 -- ============================================================
 
 CREATE TABLE usuario (
@@ -80,7 +64,7 @@ CREATE TABLE usuario (
     tipoRegistro          ENUM('local','google','facebook')               NOT NULL DEFAULT 'local',
     cantidadReportes      INT UNSIGNED NOT NULL DEFAULT 0,
 
-    -- Solo funcionario (subtipo Funcionario en el ER)
+    -- Solo funcionario
     cargo                 VARCHAR(100),
     nivelAcceso           TINYINT UNSIGNED,
     idProveedor           INT DEFAULT NULL,
@@ -111,7 +95,7 @@ CREATE TABLE proveedor (
 
 -- ============================================================
 -- PROVEEDOR_CATEGORIA_UBICACION
--- Relación tripartita GESTIONA del diagrama ER
+-- Relación tripartita GESTIONA
 -- Determina qué proveedor atiende cada categoría en cada zona
 -- ============================================================
 
@@ -141,18 +125,17 @@ CREATE TABLE reporte (
     descripcion        TEXT,
 
     estado             ENUM('recibido','en_proceso','resuelto','rechazado')
-                           NOT NULL DEFAULT 'recibido',
+                            NOT NULL DEFAULT 'recibido',
 
     esAnonimo          TINYINT(1)   NOT NULL DEFAULT 0,
 
-    -- contador desnormalizado (actualizado por trigger votar_after_ins/del)
     totalVotos         INT UNSIGNED NOT NULL DEFAULT 0,
 
     fechaCreacion      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fechaActualizacion DATETIME DEFAULT NULL,
     fechaCierre        DATETIME DEFAULT NULL,
 
-    idUsuario          INT DEFAULT NULL,   -- NULL si esAnonimo = 1
+    idUsuario          INT DEFAULT NULL,
     idUbicacion        INT NOT NULL,
     idCategoria        INT NOT NULL,
 
@@ -170,7 +153,6 @@ CREATE TABLE reporte (
 
 -- ============================================================
 -- VOTAR  —  relación N:N VOTAR entre usuario y reporte
--- (corrige la confusión del campo 'voto' en reporte)
 -- ============================================================
 
 CREATE TABLE votar (
@@ -221,7 +203,7 @@ CREATE TABLE ticket (
     fechaAsignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fechaResolucion DATETIME DEFAULT NULL,
 
-    idReporte       INT NOT NULL UNIQUE,   -- 1:1 reporte-ticket
+    idReporte       INT NOT NULL UNIQUE,
     idProveedor     INT DEFAULT NULL,
     idFuncionario   INT DEFAULT NULL,
 
@@ -273,8 +255,8 @@ CREATE TABLE comentario (
 
 -- ============================================================
 -- ALERTA_LOCAL
--- Atributos ER: frecuencia_alerta, rango_km (+ zona propia, sin FK a ubicacion)
--- Relación DISPARA → notificacion → usuario (NO hay vínculo con entidad ubicacion)
+-- Atributos ER: frecuencia_alerta, rango_km
+-- Relación DISPARA → notificacion → usuario
 -- ============================================================
 
 CREATE TABLE alerta_local (
@@ -299,7 +281,6 @@ CREATE TABLE alerta_local (
 
 -- ============================================================
 -- NOTIFICACION
--- Entidad faltante según corrección del diagrama (anotación lápiz)
 -- Relación: AlertaLocal DISPARA Notificacion → Usuario
 -- ============================================================
 
@@ -310,19 +291,19 @@ CREATE TABLE notificacion (
     mensaje        TEXT NOT NULL,
 
     tipo           ENUM(
-                     'creacion_reporte',
-                     'cambio_estado',
-                     'comentario',
-                     'ticket_asignado',
-                     'alerta_local'
-                   ) NOT NULL,
+                    'creacion_reporte',
+                    'cambio_estado',
+                    'comentario',
+                    'ticket_asignado',
+                    'alerta_local'
+                    ) NOT NULL,
 
     leida          TINYINT(1) NOT NULL DEFAULT 0,
     fechaCreacion  DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     idUsuario      INT DEFAULT NULL,
     idReporte      INT DEFAULT NULL,
-    idAlerta       INT DEFAULT NULL,   -- FK a alerta_local (relación DISPARA)
+    idAlerta       INT DEFAULT NULL,
 
     FOREIGN KEY (idUsuario)
         REFERENCES usuario(idUsuario) ON DELETE CASCADE,
@@ -373,7 +354,7 @@ VALUES
   (2,6,4),(2,7,4),
   (3,2,5),(3,4,1),(3,5,2);
 
--- Usuarios (contraseñas hasheadas con bcrypt en producción; aquí MD5 solo para demo rápida)
+-- Usuarios
 INSERT INTO usuario
   (nombres,apellido_1,apellido_2,email,contrasena,telefono,edad,rol,tipoRegistro,cantidadReportes)
 VALUES
@@ -421,14 +402,14 @@ VALUES
   ('El proveedor ya fue notificado para atender el caso.',               2,5),
   ('Se requiere validar la zona exacta del daño.',                       3,5);
 
--- Alertas locales (zona propia; sin idUbicacion — relación con ubicacion anulada en ER)
+-- Alertas locales
 INSERT INTO alerta_local (frecuencia_alerta, rango_km, departamento, ciudad, barrio, direccionTexto, latitud, longitud, idUsuario)
 VALUES
   ('diaria',    2.50,'Quindío','Armenia','El Bosque',     'Calle 10 # 15-30',   4.5339000,-75.6811000,1),
   ('semanal',   5.00,'Quindío','Armenia','La Castellana','Carrera 19 # 8-45',  4.5362000,-75.6743000,2),
   ('inmediata', 1.00,'Quindío','Armenia','Centro',        'Carrera 14 # 5-20',  4.5350000,-75.6758000,3);
 
--- Notificaciones (entidad faltante ahora correctamente integrada)
+-- Notificaciones
 INSERT INTO notificacion (titulo, mensaje, tipo, leida, idUsuario, idReporte, idAlerta)
 VALUES
   ('Reporte creado',    'Su reporte fue registrado y se generó un ticket de seguimiento.','creacion_reporte',0,1,1,NULL),
@@ -436,6 +417,6 @@ VALUES
   ('Comentario nuevo',  'Un funcionario agregó un comentario a su reporte.',              'comentario',      0,3,3,NULL),
   ('Alerta de zona',    'Nuevo reporte en tu zona de alerta (El Bosque, 2.5 km).',        'alerta_local',    0,1,1,1);
 
--- Votos (tabla correcta, sin campo 'voto' en reporte)
+-- Votos
 INSERT INTO votar (idUsuario, idReporte)
 VALUES (1,2),(2,1),(3,1),(4,2);

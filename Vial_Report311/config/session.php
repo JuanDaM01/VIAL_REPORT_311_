@@ -6,12 +6,11 @@
 
 require_once __DIR__ . '/app.php';
 
-// ── Arrancar sesión (solo si no hay ya una) ──────────────────
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 0,          // dura hasta cerrar el navegador
+        'lifetime' => 0,
         'path'     => '/',
-        'secure'   => false,      // true en producción con HTTPS
+        'secure'   => false,
         'httponly' => true,
         'samesite' => 'Strict',
     ]);
@@ -63,7 +62,7 @@ function requireRole(array $rolesPermitidos = []): void {
  * Inicia sesión guardando los datos del usuario en $_SESSION.
  */
 function iniciarSesion(array $usuario): void {
-    session_regenerate_id(true);   // previene session fixation
+    session_regenerate_id(true);
     $_SESSION['usuario_id']  = $usuario['idUsuario'];
     $_SESSION['nombre']      = trim($usuario['nombres'] . ' ' . $usuario['apellido_1']);
     $_SESSION['email']       = $usuario['email'];

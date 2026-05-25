@@ -1,6 +1,6 @@
 <?php
 // api/categorias.php
-// CRUD de Categorías alineado con el modelo ER corregido
+// CRUD de Categorías 
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');

@@ -1,6 +1,6 @@
 <?php
 // api/ubicaciones.php
-// CRUD de Ubicaciones alineado con el modelo ER corregido
+// CRUD de Ubicaciones
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -235,12 +235,12 @@ try {
             $pdo->beginTransaction();
 
             $sqlProveedor = "DELETE FROM proveedor_categoria_ubicacion
-                             WHERE idUbicacion = ?";
+                                WHERE idUbicacion = ?";
             $stProveedor = $pdo->prepare($sqlProveedor);
             $stProveedor->execute([$id]);
 
             $sqlUbicacion = "DELETE FROM ubicacion
-                             WHERE idUbicacion = ?";
+                                WHERE idUbicacion = ?";
             $stUbicacion = $pdo->prepare($sqlUbicacion);
             $stUbicacion->execute([$id]);
 

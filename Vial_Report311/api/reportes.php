@@ -241,9 +241,8 @@ try {
                             t.prioridad,
                             t.idFuncionario,
                             t.estado AS estadoTicket,
-t.fechaAsignacion,
-t.fechaResolucion,
-t.idFuncionario,
+                            t.fechaAsignacion,
+                            t.fechaResolucion,
 
                             p.idProveedor,
                             p.nombreEntidad AS proveedor
@@ -269,25 +268,25 @@ t.idFuncionario,
                 }
 
                 $sqlEvidencias = "SELECT idEvidencia, urlArchivo, tamanoKb
-                                  FROM evidencia
-                                  WHERE idReporte = ?
-                                  ORDER BY idEvidencia";
+                                    FROM evidencia
+                                    WHERE idReporte = ?
+                                    ORDER BY idEvidencia";
 
                 $stEv = $pdo->prepare($sqlEvidencias);
                 $stEv->execute([$id]);
                 $reporte['evidencias'] = $stEv->fetchAll();
 
                 $sqlComentarios = "SELECT
-                                      co.idComentario,
-                                      co.contenido,
-                                      co.fechaComentario,
-                                      co.idUsuario,
-                                      CONCAT(u.nombres, ' ', u.apellido_1) AS usuario
-                                   FROM comentario co
-                                   LEFT JOIN usuario u
-                                      ON co.idUsuario = u.idUsuario
-                                   WHERE co.idReporte = ?
-                                   ORDER BY co.fechaComentario DESC";
+                                        co.idComentario,
+                                        co.contenido,
+                                        co.fechaComentario,
+                                        co.idUsuario,
+                                        CONCAT(u.nombres, ' ', u.apellido_1) AS usuario
+                                    FROM comentario co
+                                    LEFT JOIN usuario u
+                                        ON co.idUsuario = u.idUsuario
+                                    WHERE co.idReporte = ?
+                                    ORDER BY co.fechaComentario DESC";
 
                 $stCo = $pdo->prepare($sqlComentarios);
                 $stCo->execute([$id]);
@@ -395,8 +394,8 @@ t.idFuncionario,
 
             $sqlReporte = "INSERT INTO reporte
                             (titulo, descripcion, estado, esAnonimo,
-                             idUsuario, idUbicacion, idCategoria)
-                           VALUES (?, ?, ?, ?, ?, ?, ?)";
+                            idUsuario, idUbicacion, idCategoria)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)";
 
             $stReporte = $pdo->prepare($sqlReporte);
             $stReporte->execute([
@@ -427,8 +426,8 @@ t.idFuncionario,
 
             $sqlTicket = "INSERT INTO ticket
                             (numeroCaso, prioridad, estado, fechaAsignacion,
-                             fechaResolucion, idReporte, idProveedor, idFuncionario)
-                          VALUES (?, ?, ?, NOW(), NULL, ?, ?, ?)";
+                            fechaResolucion, idReporte, idProveedor, idFuncionario)
+                            VALUES (?, ?, ?, NOW(), NULL, ?, ?, ?)";
 
             $stTicket = $pdo->prepare($sqlTicket);
             $stTicket->execute([
@@ -483,8 +482,8 @@ t.idFuncionario,
             $data = leerJson();
 
             $sqlBuscar = "SELECT *
-                          FROM reporte
-                          WHERE idReporte = ?";
+                            FROM reporte
+                            WHERE idReporte = ?";
 
             $stBuscar = $pdo->prepare($sqlBuscar);
             $stBuscar->execute([$id]);
@@ -522,7 +521,6 @@ t.idFuncionario,
             $idUsuario = null;
 
             if ($esAnonimo === 0) {
-                // Si no viene idUsuario en el payload, conservar el propietario original
                 if (!empty($data['idUsuario'])) {
                     $idUsuario = (int) $data['idUsuario'];
 
@@ -530,7 +528,6 @@ t.idFuncionario,
                         responder(['error' => 'El usuario indicado no existe'], 400);
                     }
                 } else {
-                    // Mantener el idUsuario que ya tiene el reporte en la BD
                     $idUsuario = $reporteActual['idUsuario'] ?? null;
                 }
             }
@@ -542,16 +539,16 @@ t.idFuncionario,
             $pdo->beginTransaction();
 
             $sqlActualizar = "UPDATE reporte
-                              SET titulo = ?,
-                                  descripcion = ?,
-                                  estado = ?,
-                                  esAnonimo = ?,
-                                  idUsuario = ?,
-                                  idUbicacion = ?,
-                                  idCategoria = ?,
-                                  fechaActualizacion = NOW(),
-                                  fechaCierre = $fechaCierreSql
-                              WHERE idReporte = ?";
+                                SET titulo = ?,
+                                    descripcion = ?,
+                                    estado = ?,
+                                    esAnonimo = ?,
+                                    idUsuario = ?,
+                                    idUbicacion = ?,
+                                    idCategoria = ?,
+                                    fechaActualizacion = NOW(),
+                                    fechaCierre = $fechaCierreSql
+                                WHERE idReporte = ?";
 
             $stActualizar = $pdo->prepare($sqlActualizar);
             $stActualizar->execute([
@@ -576,10 +573,10 @@ t.idFuncionario,
                 : "NULL";
 
             $sqlTicket = "UPDATE ticket
-                          SET estado = ?,
-                              idProveedor = ?,
-                              fechaResolucion = $fechaResolucionSql
-                          WHERE idReporte = ?";
+                            SET estado = ?,
+                                idProveedor = ?,
+                                fechaResolucion = $fechaResolucionSql
+                            WHERE idReporte = ?";
 
             $stTicket = $pdo->prepare($sqlTicket);
             $stTicket->execute([

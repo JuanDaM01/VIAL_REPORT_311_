@@ -107,15 +107,15 @@ try {
 
     $topProveedores = $pdo->query(
         "SELECT
-             p.idProveedor,
-             p.nombreEntidad,
-             p.solucionesResueltas,
-             COUNT(t.idTicket) AS ticketsAsignados
-         FROM proveedor p
-         LEFT JOIN ticket t ON p.idProveedor = t.idProveedor
-         GROUP BY p.idProveedor, p.nombreEntidad, p.solucionesResueltas
-         ORDER BY ticketsAsignados DESC
-         LIMIT 5"
+            p.idProveedor,
+            p.nombreEntidad,
+            p.solucionesResueltas,
+            COUNT(t.idTicket) AS ticketsAsignados
+        FROM proveedor p
+        LEFT JOIN ticket t ON p.idProveedor = t.idProveedor
+        GROUP BY p.idProveedor, p.nombreEntidad, p.solucionesResueltas
+        ORDER BY ticketsAsignados DESC
+        LIMIT 5"
     )->fetchAll();
 
     responder([

@@ -56,7 +56,7 @@ function existeVoto(PDO $pdo, int $idUsuario, int $idReporte): bool
     $sql = "SELECT COUNT(*)
             FROM votar
             WHERE idUsuario = ?
-              AND idReporte = ?";
+                AND idReporte = ?";
 
     $st = $pdo->prepare($sql);
     $st->execute([$idUsuario, $idReporte]);
@@ -220,7 +220,7 @@ try {
 
             $sql = "DELETE FROM votar
                     WHERE idUsuario = ?
-                      AND idReporte = ?";
+                        AND idReporte = ?";
 
             $st = $pdo->prepare($sql);
             $st->execute([

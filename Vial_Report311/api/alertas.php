@@ -1,7 +1,7 @@
 <?php
 // api/alertas.php
 // CRUD AlertaLocal — ER: frecuencia_alerta, rango_km, zona propia, idUsuario
-// DISPARA: AlertaLocal → Notificacion → Usuario (sin FK a entidad ubicacion)
+// DISPARA: AlertaLocal → Notificacion → Usuario
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -86,7 +86,6 @@ function exigirAccesoAlerta(PDO $pdo, int $idAlerta): void
     }
 }
 
-/** Columnas de zona en alerta_local (no usa tabla ubicacion). */
 function extraerZona(array $data): array
 {
     $zona = $data['zona'] ?? $data['ubicacion'] ?? $data;
@@ -108,17 +107,16 @@ function columnaExiste(PDO $pdo, string $tabla, string $columna): bool
 {
     $st = $pdo->prepare(
         "SELECT COUNT(*)
-         FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE()
-           AND TABLE_NAME = ?
-           AND COLUMN_NAME = ?"
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ?
+            AND COLUMN_NAME = ?"
     );
     $st->execute([$tabla, $columna]);
 
     return (int) $st->fetchColumn() > 0;
 }
 
-/** Actualiza la tabla si aún tiene el esquema antiguo (idUbicacion). */
 function asegurarEsquemaAlerta(PDO $pdo): void
 {
     if (columnaExiste($pdo, 'alerta_local', 'ciudad')) {
@@ -135,27 +133,26 @@ function asegurarEsquemaAlerta(PDO $pdo): void
         try {
             $pdo->exec($sql);
         } catch (PDOException $e) {
-            // Columna ya agregada en intento paralelo
         }
     }
 
     if (columnaExiste($pdo, 'alerta_local', 'idUbicacion')) {
         $pdo->exec(
             'UPDATE alerta_local a
-             INNER JOIN ubicacion u ON a.idUbicacion = u.idUbicacion
-             SET a.departamento = u.departamento,
-                 a.ciudad = u.ciudad,
-                 a.barrio = u.barrio'
+            INNER JOIN ubicacion u ON a.idUbicacion = u.idUbicacion
+            SET a.departamento = u.departamento,
+                a.ciudad = u.ciudad,
+                a.barrio = u.barrio'
         );
 
         $stFk = $pdo->query(
             "SELECT CONSTRAINT_NAME
-             FROM information_schema.KEY_COLUMN_USAGE
-             WHERE TABLE_SCHEMA = DATABASE()
-               AND TABLE_NAME = 'alerta_local'
-               AND COLUMN_NAME = 'idUbicacion'
-               AND REFERENCED_TABLE_NAME IS NOT NULL
-             LIMIT 1"
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'alerta_local'
+                AND COLUMN_NAME = 'idUbicacion'
+                AND REFERENCED_TABLE_NAME IS NOT NULL
+            LIMIT 1"
         );
         $fk = $stFk->fetchColumn();
 
@@ -166,7 +163,6 @@ function asegurarEsquemaAlerta(PDO $pdo): void
         try {
             $pdo->exec('ALTER TABLE alerta_local DROP COLUMN idUbicacion');
         } catch (PDOException $e) {
-            // Ignorar si ya se eliminó
         }
     }
 }
@@ -288,8 +284,8 @@ try {
 
             $sql = "INSERT INTO alerta_local
                         (frecuencia_alerta, rango_km,
-                         departamento, ciudad, barrio,
-                         idUsuario)
+                        departamento, ciudad, barrio,
+                        idUsuario)
                     VALUES (?, ?, ?, ?, ?, ?)";
 
             $st = $pdo->prepare($sql);

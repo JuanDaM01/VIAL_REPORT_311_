@@ -79,7 +79,7 @@ function obtenerAsignaciones(PDO $pdo, int $idProveedor): array
 function guardarAsignaciones(PDO $pdo, int $idProveedor, array $asignaciones): void
 {
     $sqlDelete = "DELETE FROM proveedor_categoria_ubicacion
-                  WHERE idProveedor = ?";
+                    WHERE idProveedor = ?";
     $stDelete = $pdo->prepare($sqlDelete);
     $stDelete->execute([$idProveedor]);
 
@@ -89,7 +89,7 @@ function guardarAsignaciones(PDO $pdo, int $idProveedor, array $asignaciones): v
 
     $sqlInsert = "INSERT INTO proveedor_categoria_ubicacion
                     (idProveedor, idCategoria, idUbicacion)
-                  VALUES (?, ?, ?)";
+                    VALUES (?, ?, ?)";
 
     $stInsert = $pdo->prepare($sqlInsert);
     $registradas = [];
@@ -298,18 +298,18 @@ try {
             $pdo->beginTransaction();
 
             $sqlRelaciones = "DELETE FROM proveedor_categoria_ubicacion
-                              WHERE idProveedor = ?";
+                                WHERE idProveedor = ?";
             $stRelaciones = $pdo->prepare($sqlRelaciones);
             $stRelaciones->execute([$id]);
 
             $sqlTickets = "UPDATE ticket
-                           SET idProveedor = NULL
-                           WHERE idProveedor = ?";
+                            SET idProveedor = NULL
+                            WHERE idProveedor = ?";
             $stTickets = $pdo->prepare($sqlTickets);
             $stTickets->execute([$id]);
 
             $sqlProveedor = "DELETE FROM proveedor
-                             WHERE idProveedor = ?";
+                            WHERE idProveedor = ?";
             $stProveedor = $pdo->prepare($sqlProveedor);
             $stProveedor->execute([$id]);
 

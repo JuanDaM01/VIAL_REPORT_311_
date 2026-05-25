@@ -1,6 +1,6 @@
 <?php
 // api/tickets.php
-// CRUD de Tickets alineado con el diagrama ER corregido
+// CRUD de Tickets
 // Maneja número de caso, proveedor, funcionario y sincronización con reporte
 
 header('Content-Type: application/json; charset=utf-8');
@@ -95,7 +95,7 @@ function buscarProveedorResponsable(PDO $pdo, int $idCategoria, int $idUbicacion
     $sql = "SELECT idProveedor
             FROM proveedor_categoria_ubicacion
             WHERE idCategoria = ?
-              AND idUbicacion = ?
+                AND idUbicacion = ?
             LIMIT 1";
 
     $st = $pdo->prepare($sql);
@@ -107,9 +107,9 @@ function buscarProveedorResponsable(PDO $pdo, int $idCategoria, int $idUbicacion
     }
 
     $sqlAlterno = "SELECT idProveedor
-                   FROM proveedor_categoria_ubicacion
-                   WHERE idCategoria = ?
-                   LIMIT 1";
+                    FROM proveedor_categoria_ubicacion
+                    WHERE idCategoria = ?
+                    LIMIT 1";
 
     $st = $pdo->prepare($sqlAlterno);
     $st->execute([$idCategoria]);
@@ -123,7 +123,7 @@ function buscarFuncionarioDisponible(PDO $pdo): ?int
     $sql = "SELECT idUsuario
             FROM usuario
             WHERE rol = 'funcionario'
-              AND activo = 1
+                AND activo = 1
             ORDER BY idUsuario
             LIMIT 1";
 
@@ -350,7 +350,7 @@ try {
 
             $sql = "INSERT INTO ticket
                         (numeroCaso, prioridad, estado, fechaAsignacion,
-                         fechaResolucion, idReporte, idProveedor, idFuncionario)
+                        fechaResolucion, idReporte, idProveedor, idFuncionario)
                     VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)";
 
             $st = $pdo->prepare($sql);
@@ -367,10 +367,10 @@ try {
             $idTicket = (int) $pdo->lastInsertId();
 
             $sqlReporte = "UPDATE reporte
-                           SET estado = ?,
-                               fechaActualizacion = NOW(),
-                               fechaCierre = ?
-                           WHERE idReporte = ?";
+                            SET estado = ?,
+                                fechaActualizacion = NOW(),
+                                fechaCierre = ?
+                            WHERE idReporte = ?";
 
             $fechaCierre = $estado === 'cerrado'
                 ? date('Y-m-d H:i:s')
@@ -511,10 +511,10 @@ try {
                 : null;
 
             $sqlReporte = "UPDATE reporte
-                           SET estado = ?,
-                               fechaActualizacion = NOW(),
-                               fechaCierre = ?
-                           WHERE idReporte = ?";
+                            SET estado = ?,
+                                fechaActualizacion = NOW(),
+                                fechaCierre = ?
+                            WHERE idReporte = ?";
 
             $stReporte = $pdo->prepare($sqlReporte);
             $stReporte->execute([
