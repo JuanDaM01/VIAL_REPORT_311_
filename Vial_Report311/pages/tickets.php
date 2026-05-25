@@ -1,4 +1,8 @@
-<?php require_once __DIR__ . '/../config/session.php'; requireRole(['funcionario','administrador']); ?>
+<?php
+require_once __DIR__ . '/../config/session.php';
+requireRole(['funcionario', 'administrador']);
+$rol = rolActual();
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,8 +10,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Tickets — VialReport311</title>
   <link rel="stylesheet" href="../assets/css/style.css"/>
+  <style>
+    body.role-funcionario #grp-funcionario-ticket,
+    body.role-funcionario #grp-reporte-ticket,
+    body.role-funcionario #grp-numero-ticket {
+      display: none !important;
+    }
+  </style>
 </head>
-<body>
+<body class="role-<?= htmlspecialchars($rol, ENT_QUOTES, 'UTF-8') ?>">
 
 <?php include 'navbar.php'; ?>
 
@@ -58,12 +69,12 @@
       <input type="hidden" id="tid"/>
 
       <div class="form-row">
-        <div class="form-group" style="flex:2">
+        <div class="form-group" style="flex:2" id="grp-reporte-ticket">
           <label>Reporte asociado *</label>
           <select id="idReporte"></select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="grp-numero-ticket">
           <label>Número de caso</label>
           <input type="text" id="numeroCaso" placeholder="Automático"/>
         </div>
@@ -96,7 +107,7 @@
           <select id="idProveedor"></select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="grp-funcionario-ticket">
           <label>Funcionario asignado</label>
           <select id="idFuncionario"></select>
         </div>
@@ -126,6 +137,8 @@ const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
 const API_TICKETS = '../api/tickets.php';
 const API_REPORTES = '../api/reportes.php';
 const API_CATALOGOS = '../api/catalogos.php?recurso=todo';
+
+let ticketEnEdicion = null;
 
 let catalogos = {
   reportes: [],
@@ -342,6 +355,8 @@ async function editar(id) {
     return;
   }
 
+  ticketEnEdicion = t;
+
   document.getElementById('modalTit').textContent = USER_ROLE === 'funcionario' ? '🛠 Gestionar Ticket' : 'Editar Ticket';
 
   document.getElementById('tid').value = t.idTicket;
@@ -359,19 +374,38 @@ async function editar(id) {
   if (USER_ROLE === 'funcionario') {
     document.getElementById('idReporte').disabled = true;
     document.getElementById('numeroCaso').disabled = true;
+    document.getElementById('idFuncionario').disabled = true;
   } else {
     document.getElementById('idReporte').disabled = false;
     document.getElementById('numeroCaso').disabled = false;
+    document.getElementById('idFuncionario').disabled = false;
   }
 
   document.getElementById('modal').classList.add('open');
 }
 
 function cerrarModal() {
+  ticketEnEdicion = null;
   document.getElementById('modal').classList.remove('open');
 }
 
 function construirBody() {
+  if (USER_ROLE === 'funcionario' && ticketEnEdicion) {
+    return {
+      idReporte: Number(ticketEnEdicion.idReporte),
+      numeroCaso: ticketEnEdicion.numeroCaso,
+      prioridad: document.getElementById('prioridad').value,
+      estado: document.getElementById('estado').value,
+      idProveedor: document.getElementById('idProveedor').value
+        ? Number(document.getElementById('idProveedor').value)
+        : null,
+      idFuncionario: ticketEnEdicion.idFuncionario
+        ? Number(ticketEnEdicion.idFuncionario)
+        : null,
+      fechaResolucion: document.getElementById('fechaResolucion').value || null
+    };
+  }
+
   return {
     idReporte: document.getElementById('idReporte').value
       ? Number(document.getElementById('idReporte').value)
@@ -415,6 +449,12 @@ function validarFormulario(body) {
 
 async function guardar() {
   const id = document.getElementById('tid').value;
+
+  if (USER_ROLE === 'funcionario' && !id) {
+    toast('Los funcionarios no pueden crear tickets', false);
+    return;
+  }
+
   const body = construirBody();
 
   if (!validarFormulario(body)) {

@@ -19,7 +19,6 @@ $success = '';
 $msg = $_GET['msg'] ?? '';
 if ($msg === 'sesion')  $error   = '⚠️ Debes iniciar sesión para acceder a esa página.';
 if ($msg === 'acceso')  $error   = '🚫 No tienes permisos para acceder a esa sección.';
-if ($msg === 'logout')  $success = '✅ Sesión cerrada correctamente.';
 if ($msg === 'registro') $success = '✅ Cuenta creada. Ya puedes iniciar sesión.';
 
 // ── Procesar POST ────────────────────────────────────────────

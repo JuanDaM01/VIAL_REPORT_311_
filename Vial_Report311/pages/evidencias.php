@@ -1,4 +1,8 @@
-<?php require_once __DIR__ . '/../config/session.php'; requireRole(); ?>
+<?php
+require_once __DIR__ . '/../config/session.php';
+requireRole();
+$rol = rolActual();
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,7 +11,7 @@
   <title>Evidencias — VialReport311</title>
   <link rel="stylesheet" href="../assets/css/style.css"/>
 </head>
-<body>
+<body class="role-<?= htmlspecialchars($rol, ENT_QUOTES, 'UTF-8') ?>">
 
 <?php include 'navbar.php'; ?>
 

@@ -14,41 +14,126 @@ if (estaLogueado()) {
 
 $errors  = [];
 $success = '';
-$datos   = ['nombres' => '', 'apellido_1' => '', 'apellido_2' => '', 'email' => '', 'telefono' => ''];
+$datos   = [
+    'nombres'               => '',
+    'apellido_1'            => '',
+    'apellido_2'            => '',
+    'email'                 => '',
+    'telefono'              => '',
+    'edad'                  => '',
+    'fecha_nacimiento_dia'  => '',
+    'fecha_nacimiento_mes'  => '',
+    'fecha_nacimiento_ano'  => '',
+    'tipoRegistro'          => 'local',
+];
+
+function calcularEdadDesdeNacimiento(?int $dia, ?int $mes, ?int $ano): ?int
+{
+    if ($dia === null || $mes === null || $ano === null) {
+        return null;
+    }
+
+    if (!checkdate($mes, $dia, $ano)) {
+        return null;
+    }
+
+    $hoy = new DateTime('today');
+    $nac = DateTime::createFromFormat('Y-n-j', "{$ano}-{$mes}-{$dia}");
+
+    if (!$nac || $nac > $hoy) {
+        return null;
+    }
+
+    return (int) $nac->diff($hoy)->y;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $datos = [
-        'nombres'    => trim($_POST['nombres']    ?? ''),
-        'apellido_1' => trim($_POST['apellido_1'] ?? ''),
-        'apellido_2' => trim($_POST['apellido_2'] ?? ''),
-        'email'      => trim($_POST['email']      ?? ''),
-        'telefono'   => trim($_POST['telefono']   ?? ''),
+        'nombres'               => trim($_POST['nombres']    ?? ''),
+        'apellido_1'            => trim($_POST['apellido_1'] ?? ''),
+        'apellido_2'            => trim($_POST['apellido_2'] ?? ''),
+        'email'                 => trim($_POST['email']      ?? ''),
+        'telefono'              => trim($_POST['telefono']   ?? ''),
+        'edad'                  => trim($_POST['edad']       ?? ''),
+        'fecha_nacimiento_dia'  => trim($_POST['fecha_nacimiento_dia'] ?? ''),
+        'fecha_nacimiento_mes'  => trim($_POST['fecha_nacimiento_mes'] ?? ''),
+        'fecha_nacimiento_ano'  => trim($_POST['fecha_nacimiento_ano'] ?? ''),
+        'tipoRegistro'          => trim($_POST['tipoRegistro'] ?? 'local'),
     ];
     $pass1 = $_POST['password']  ?? '';
     $pass2 = $_POST['password2'] ?? '';
 
-    // Validaciones
+    $diaNac  = $datos['fecha_nacimiento_dia'] !== '' ? (int) $datos['fecha_nacimiento_dia'] : null;
+    $mesNac  = $datos['fecha_nacimiento_mes'] !== '' ? (int) $datos['fecha_nacimiento_mes'] : null;
+    $anoNac  = $datos['fecha_nacimiento_ano'] !== '' ? (int) $datos['fecha_nacimiento_ano'] : null;
+    $edad    = $datos['edad'] !== '' ? (int) $datos['edad'] : null;
+    $tiposOk = ['local', 'google', 'facebook'];
+
     if ($datos['nombres']    === '') $errors[] = 'El nombre es obligatorio.';
     if ($datos['apellido_1'] === '') $errors[] = 'El primer apellido es obligatorio.';
     if (!filter_var($datos['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Correo inválido.';
     if (strlen($pass1) < 6)   $errors[] = 'La contraseña debe tener al menos 6 caracteres.';
     if ($pass1 !== $pass2)    $errors[] = 'Las contraseñas no coinciden.';
+    if (!in_array($datos['tipoRegistro'], $tiposOk, true)) {
+        $errors[] = 'El tipo de registro no es válido.';
+    }
+
+    $partesNacimiento = (int) ($diaNac !== null) + (int) ($mesNac !== null) + (int) ($anoNac !== null);
+    if ($partesNacimiento > 0 && $partesNacimiento < 3) {
+        $errors[] = 'Complete día, mes y año de nacimiento, o déjelos vacíos.';
+    }
+
+    if ($partesNacimiento === 3) {
+        if ($diaNac < 1 || $diaNac > 31) {
+            $errors[] = 'El día de nacimiento no es válido.';
+        }
+        if ($mesNac < 1 || $mesNac > 12) {
+            $errors[] = 'El mes de nacimiento no es válido.';
+        }
+        if ($anoNac < 1900 || $anoNac > (int) date('Y')) {
+            $errors[] = 'El año de nacimiento no es válido.';
+        }
+        if (empty($errors) && !checkdate($mesNac, $diaNac, $anoNac)) {
+            $errors[] = 'La fecha de nacimiento no es válida.';
+        }
+    }
+
+    if ($edad !== null && ($edad < 14 || $edad > 120)) {
+        $errors[] = 'La edad debe estar entre 14 y 120 años.';
+    }
 
     if (empty($errors)) {
         $pdo = getConnection();
 
-        // Email único
         $check = $pdo->prepare('SELECT idUsuario FROM usuario WHERE email = ? LIMIT 1');
         $check->execute([$datos['email']]);
         if ($check->fetch()) {
             $errors[] = 'Ese correo ya está registrado.';
         } else {
+            $edadCalculada = calcularEdadDesdeNacimiento($diaNac, $mesNac, $anoNac);
+            $edadFinal = $edad ?? $edadCalculada;
+
             $hash = password_hash($pass1, PASSWORD_BCRYPT);
             $ins  = $pdo->prepare('
                 INSERT INTO usuario
-                  (nombres, apellido_1, apellido_2, email, contrasena, telefono, rol, tipoRegistro, activo)
+                  (
+                    nombres,
+                    apellido_1,
+                    apellido_2,
+                    email,
+                    contrasena,
+                    telefono,
+                    edad,
+                    fecha_nacimiento_dia,
+                    fecha_nacimiento_mes,
+                    fecha_nacimiento_ano,
+                    rol,
+                    tipoRegistro,
+                    cantidadReportes,
+                    activo
+                  )
                 VALUES
-                  (?, ?, ?, ?, ?, ?, \'ciudadano\', \'local\', 1)
+                  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'ciudadano\', ?, 0, 1)
             ');
             $ins->execute([
                 $datos['nombres'],
@@ -57,9 +142,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $datos['email'],
                 $hash,
                 $datos['telefono'] ?: null,
+                $edadFinal,
+                $diaNac,
+                $mesNac,
+                $anoNac,
+                $datos['tipoRegistro'],
             ]);
 
-            // Redirigir al login con mensaje de éxito
             header('Location: ' . BASE_URL . '/auth/login.php?msg=registro');
             exit;
         }
@@ -104,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .auth-card {
       position: relative;
       width: 100%;
-      max-width: 520px;
+      max-width: 560px;
       background: rgba(19,21,29,.78);
       backdrop-filter: blur(22px) saturate(1.4);
       -webkit-backdrop-filter: blur(22px) saturate(1.4);
@@ -143,7 +232,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .auth-form { display: flex; flex-direction: column; gap: .95rem; }
 
     .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-    @media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+    @media (max-width: 480px) {
+      .form-row-2,
+      .form-row-3 { grid-template-columns: 1fr; }
+    }
+
+    .field-group select {
+      width: 100%;
+      background: rgba(26,30,42,.65);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: .88rem;
+      padding: .6rem .8rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field-group select:focus {
+      border-color: rgba(245,166,35,.6);
+      box-shadow: 0 0 0 3px rgba(245,166,35,.1);
+    }
+    .field-hint {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
 
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     .field-group label { font-size: .75rem; font-weight: 600; color: var(--text2); letter-spacing: .25px; }
@@ -324,6 +440,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
+      <!-- Fecha de nacimiento (ER: dia, mes, año) -->
+      <div class="field-group">
+        <label>Fecha de nacimiento</label>
+        <div class="form-row-3">
+          <div class="field-wrap">
+            <input class="no-icon" type="number" name="fecha_nacimiento_dia" id="fecha_nacimiento_dia"
+              min="1" max="31" placeholder="Día"
+              value="<?= htmlspecialchars($datos['fecha_nacimiento_dia']) ?>"/>
+          </div>
+          <div class="field-wrap">
+            <input class="no-icon" type="number" name="fecha_nacimiento_mes" id="fecha_nacimiento_mes"
+              min="1" max="12" placeholder="Mes"
+              value="<?= htmlspecialchars($datos['fecha_nacimiento_mes']) ?>"/>
+          </div>
+          <div class="field-wrap">
+            <input class="no-icon" type="number" name="fecha_nacimiento_ano" id="fecha_nacimiento_ano"
+              min="1900" max="<?= (int) date('Y') ?>" placeholder="Año"
+              value="<?= htmlspecialchars($datos['fecha_nacimiento_ano']) ?>"/>
+          </div>
+        </div>
+        <span class="field-hint">Opcional. Si la completas, incluye día, mes y año.</span>
+      </div>
+
+      <!-- Edad -->
+      <div class="form-row-2">
+        <div class="field-group">
+          <label for="edad">Edad</label>
+          <div class="field-wrap">
+            <span class="field-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <input id="edad" type="number" name="edad" min="14" max="120"
+              placeholder="Ej: 28 (opcional)"
+              value="<?= htmlspecialchars($datos['edad']) ?>"/>
+          </div>
+          <span class="field-hint">Se calcula sola si indicas la fecha de nacimiento.</span>
+        </div>
+
+        <div class="field-group">
+          <label for="tipoRegistro">Tipo de registro *</label>
+          <select id="tipoRegistro" name="tipoRegistro" required>
+            <option value="local" <?= $datos['tipoRegistro'] === 'local' ? 'selected' : '' ?>>Registro local (correo)</option>
+            <option value="google" <?= $datos['tipoRegistro'] === 'google' ? 'selected' : '' ?>>Google</option>
+            <option value="facebook" <?= $datos['tipoRegistro'] === 'facebook' ? 'selected' : '' ?>>Facebook</option>
+          </select>
+          <span class="field-hint">Atributo del usuario según el modelo ER.</span>
+        </div>
+      </div>
+
       <!-- Email -->
       <div class="field-group">
         <label for="email">Correo electrónico *</label>
@@ -426,6 +591,33 @@ passInput.addEventListener('input', () => {
   strengthFill.style.width      = lvl.pct;
   strengthFill.style.background = lvl.bg;
   strengthLbl.textContent       = lvl.label;
+});
+
+// Calcular edad desde fecha de nacimiento
+function actualizarEdadDesdeNacimiento() {
+  const dia = parseInt(document.getElementById('fecha_nacimiento_dia').value, 10);
+  const mes = parseInt(document.getElementById('fecha_nacimiento_mes').value, 10);
+  const ano = parseInt(document.getElementById('fecha_nacimiento_ano').value, 10);
+  const edadInput = document.getElementById('edad');
+
+  if (!dia || !mes || !ano) return;
+
+  const hoy = new Date();
+  const nac = new Date(ano, mes - 1, dia);
+  if (Number.isNaN(nac.getTime()) || nac > hoy) return;
+
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const cumpleEsteAno = new Date(hoy.getFullYear(), mes - 1, dia);
+  if (hoy < cumpleEsteAno) edad--;
+
+  if (edad >= 14 && edad <= 120) {
+    edadInput.value = String(edad);
+  }
+}
+
+['fecha_nacimiento_dia', 'fecha_nacimiento_mes', 'fecha_nacimiento_ano'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', actualizarEdadDesdeNacimiento);
+  document.getElementById(id).addEventListener('blur', actualizarEdadDesdeNacimiento);
 });
 
 // Submit feedback

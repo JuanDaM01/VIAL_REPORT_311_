@@ -14,12 +14,14 @@ $usuario  = usuarioSesion();
 // URL de inicio según rol
 $urlInicio = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
 $slugInicio = ($rol === 'administrador') ? 'index' : 'reportes';
+$urlBrand = ($rol === 'administrador') ? URL_HOME : URL_REPORTES;
 
 // Todos ven Inicio y Reportes públicos, pero ciudadano y funcionario con menú simplificado sin redundancia ni duplicidad
 $itemsComun = [];
 if ($rol === 'ciudadano') {
     $itemsComun = [
-        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Inicio']
+        ['url' => URL_REPORTES, 'slug' => 'reportes', 'icon' => 'home', 'label' => 'Inicio'],
+        ['url' => URL_ALERTAS, 'slug' => 'alertas', 'icon' => 'bell-ring', 'label' => 'Alertas Locales'],
     ];
 } elseif ($rol === 'funcionario') {
     $itemsComun = [
@@ -90,7 +92,7 @@ $svgIcons = [
 
 <nav class="navbar" id="mainNav">
   <!-- ── Brand ── -->
-  <a class="brand" href="<?= URL_HOME ?>">
+  <a class="brand" href="<?= $urlBrand ?>">
     <span class="brand-icon"><?= $svgIcons['warning'] ?></span>
     Vial<span>Report311</span>
   </a>

@@ -6,5 +6,5 @@ require_once __DIR__ . '/../config/session.php';
 
 cerrarSesion();
 
-header('Location: ' . BASE_URL . '/auth/login.php?msg=logout');
+header('Location: ' . BASE_URL . '/auth/login.php');
 exit;

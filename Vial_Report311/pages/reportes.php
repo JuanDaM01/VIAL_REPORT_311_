@@ -212,8 +212,35 @@
     body.role-funcionario .page-header {
       display: none !important;
     }
-    body.role-funcionario #grp-usuario {
+    body.role-funcionario #grp-usuario,
+    body.role-funcionario #grp-funcionario,
+    body.role-funcionario #bloqueCiudadano,
+    body.role-funcionario #bloqueEvidencia,
+    body.role-funcionario #rowAnonimo {
       display: none !important;
+    }
+    body.role-funcionario #funcionarioTabs .tab-btn:nth-child(2) {
+      display: none !important;
+    }
+    .funcionario-resumen {
+      display: none;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .funcionario-resumen strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: .35rem;
+      color: var(--text);
+    }
+    .funcionario-resumen p {
+      margin: 0;
+      font-size: .85rem;
+      color: var(--text2);
+      line-height: 1.5;
     }
     .funcionario-hero {
       display: none;
@@ -567,36 +594,43 @@
     <div class="modal-body">
       <input type="hidden" id="rid"/>
 
-      <div class="form-group">
-        <label>Título *</label>
-        <input type="text" id="titulo" placeholder="Describe brevemente el problema vial"/>
+      <div id="bloqueResumenFuncionario" class="funcionario-resumen" aria-hidden="true">
+        <strong id="resumenTitulo"></strong>
+        <p id="resumenMeta"></p>
       </div>
 
-      <div class="form-group">
-        <label>Descripción</label>
-        <textarea id="descripcion" rows="3" placeholder="Detalle del problema, punto de referencia o información adicional"></textarea>
-      </div>
-
-      <div class="form-row">
+      <div id="bloqueCiudadano">
         <div class="form-group">
-          <label>Categoría *</label>
-          <select id="idCategoria"></select>
+          <label>Título *</label>
+          <input type="text" id="titulo" placeholder="Describe brevemente el problema vial"/>
         </div>
 
         <div class="form-group">
-          <label>Ubicación *</label>
-          <div class="combobox-wrap" id="ubicacionCombobox">
-            <input type="text" id="ubicacionInput" placeholder="Buscar o escribir nueva ubicación..." autocomplete="off"/>
-            <input type="hidden" id="idUbicacion" value=""/>
-            <button type="button" class="combobox-toggle" id="ubicacionToggle">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div class="combobox-dropdown" id="ubicacionDropdown"></div>
-            <div id="ubicacionBadge"></div>
+          <label>Descripción</label>
+          <textarea id="descripcion" rows="3" placeholder="Detalle del problema, punto de referencia o información adicional"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoría *</label>
+            <select id="idCategoria"></select>
+          </div>
+
+          <div class="form-group">
+            <label>Ubicación *</label>
+            <div class="combobox-wrap" id="ubicacionCombobox">
+              <input type="text" id="ubicacionInput" placeholder="Buscar o escribir nueva ubicación..." autocomplete="off"/>
+              <input type="hidden" id="idUbicacion" value=""/>
+              <button type="button" class="combobox-toggle" id="ubicacionToggle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="combobox-dropdown" id="ubicacionDropdown"></div>
+            </div>
           </div>
         </div>
       </div>
 
+      <div id="bloqueGestion">
       <div class="form-row">
         <div class="form-group" id="grp-estado">
           <label>Estado del reporte</label>
@@ -641,21 +675,24 @@
             <option value="">Asignación automática</option>
           </select>
         </div>
+      </div>
+      </div>
 
-        <div class="form-group">
-          <label>URL de evidencia</label>
-          <input type="text" id="urlArchivo" placeholder="uploads/evidencias/foto.jpg"/>
+      <div id="bloqueEvidencia">
+        <div class="form-row">
+          <div class="form-group">
+            <label>URL de evidencia</label>
+            <input type="text" id="urlArchivo" placeholder="uploads/evidencias/foto.jpg"/>
+          </div>
+
+          <div class="form-group">
+            <label>Tamaño evidencia (KB)</label>
+            <input type="number" id="tamanoKb" min="1" placeholder="Ej: 480"/>
+          </div>
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group" style="width: 100%;">
-          <label>Tamaño evidencia (KB)</label>
-          <input type="number" id="tamanoKb" min="1" placeholder="Ej: 480"/>
-        </div>
-      </div>
-
-      <div class="check-row">
+      <div id="rowAnonimo" class="check-row">
         <input type="checkbox" id="esAnonimo" onchange="controlarAnonimo()"/>
         <label for="esAnonimo">Reporte anónimo</label>
       </div>
@@ -706,6 +743,7 @@ const API_CATALOGOS = '../api/catalogos.php?recurso=todo';
 let todosLosReportes = [];
 let vistaActual = 'mis';
 let misVotos = new Set();
+let reporteEnEdicion = null;
 
 async function cargarMisVotos() {
   if (!USER_ID) return;
@@ -811,7 +849,6 @@ function initComboboxUbicacion() {
   const hidden   = document.getElementById('idUbicacion');
   const dropdown = document.getElementById('ubicacionDropdown');
   const toggle   = document.getElementById('ubicacionToggle');
-  const badge    = document.getElementById('ubicacionBadge');
 
   function getOpciones(filtro) {
     const f = (filtro || '').toLowerCase();
@@ -864,7 +901,6 @@ function initComboboxUbicacion() {
     ubicacionTextoNuevo = '';
     input.value = opt.texto;
     hidden.value = opt.id;
-    badge.innerHTML = '<span class="combobox-badge existing">✓ Ubicación existente</span>';
     cerrarDropdown();
   }
 
@@ -873,7 +909,6 @@ function initComboboxUbicacion() {
     ubicacionTextoNuevo = texto;
     input.value = texto;
     hidden.value = '';
-    badge.innerHTML = '<span class="combobox-badge new-loc">＋ Se creará nueva ubicación</span>';
     cerrarDropdown();
   }
 
@@ -904,7 +939,6 @@ function initComboboxUbicacion() {
     if (ubicacionSeleccionada && input.value !== ubicacionSeleccionada.texto) {
       ubicacionSeleccionada = null;
       hidden.value = '';
-      badge.innerHTML = '';
     }
 
     renderDropdown(input.value);
@@ -915,7 +949,6 @@ function initComboboxUbicacion() {
       ubicacionSeleccionada = null;
       ubicacionTextoNuevo = '';
       hidden.value = '';
-      badge.innerHTML = '';
     }
   });
 
@@ -1168,9 +1201,10 @@ function abrirModal() {
   document.getElementById('idCategoria').value = '';
   document.getElementById('idUbicacion').value = '';
   document.getElementById('ubicacionInput').value = '';
-  document.getElementById('ubicacionBadge').innerHTML = '';
   ubicacionSeleccionada = null;
   ubicacionTextoNuevo = '';
+  reporteEnEdicion = null;
+  document.getElementById('bloqueResumenFuncionario').style.display = 'none';
 
   // Cerrar combobox dropdown
   const cbDropdown = document.getElementById('ubicacionDropdown');
@@ -1207,6 +1241,8 @@ async function editar(id) {
     return;
   }
 
+  reporteEnEdicion = r;
+
   // Titulo del modal según rol
   document.getElementById('modalTit').textContent =
     USER_ROLE === 'funcionario' ? '🛠 Gestionar Caso' : 'Editar Reporte';
@@ -1231,13 +1267,11 @@ async function editar(id) {
       document.getElementById('ubicacionInput').value = textoUb;
       ubicacionSeleccionada = { idUbicacion: r.idUbicacion, texto: textoUb };
       ubicacionTextoNuevo = '';
-      document.getElementById('ubicacionBadge').innerHTML = '<span class="combobox-badge existing">✓ Ubicación existente</span>';
     }
   } else {
     document.getElementById('ubicacionInput').value = '';
     ubicacionSeleccionada = null;
     ubicacionTextoNuevo = '';
-    document.getElementById('ubicacionBadge').innerHTML = '';
   }
 
   document.getElementById('estado').value = r.estado ?? 'recibido';
@@ -1256,40 +1290,18 @@ async function editar(id) {
 
   document.getElementById('esAnonimo').checked = r.esAnonimo == 1;
 
-  // ── Bloquear campos del ciudadano si es Funcionario ──────────
-  const camposCiudadano = ['titulo', 'descripcion', 'idCategoria', 'ubicacionInput', 'urlArchivo', 'tamanoKb', 'esAnonimo'];
-  const gruposReadonly = ['ubicacionCombobox'];
-
   if (USER_ROLE === 'funcionario') {
-    camposCiudadano.forEach(fid => {
-      const el = document.getElementById(fid);
-      if (el) el.disabled = true;
-    });
-    gruposReadonly.forEach(gid => {
-      const el = document.getElementById(gid);
-      if (el) el.classList.add('field-readonly');
-    });
-    // Agregar badge a la etiqueta del modal
-    document.querySelectorAll('#modal .form-group label').forEach(lbl => {
-      const fid = lbl.closest('.form-group')?.querySelector('input,textarea,select')?.id ?? '';
-      const esCiudadano = camposCiudadano.includes(fid) || lbl.closest('.form-group')?.id === 'grp-cat';
-      if (camposCiudadano.some(f => lbl.closest('.form-group')?.querySelector(`#${f}`))) {
-        if (!lbl.querySelector('.readonly-badge')) {
-          lbl.insertAdjacentHTML('beforeend', '<span class="readonly-badge">Solo lectura</span>');
-        }
-      }
-    });
+    const cat = catalogos.categorias.find(c => c.idCategoria == r.idCategoria);
+    const ub = catalogos.ubicaciones.find(u => u.idUbicacion == r.idUbicacion);
+    document.getElementById('resumenTitulo').textContent = r.titulo ?? 'Sin título';
+    document.getElementById('resumenMeta').textContent = [
+      cat ? `Categoría: ${cat.nombre}` : null,
+      ub ? `Ubicación: ${textoUbicacion(ub)}` : null,
+      r.esAnonimo == 1 ? 'Reporte anónimo' : (r.ciudadano ? `Ciudadano: ${r.ciudadano}` : null)
+    ].filter(Boolean).join(' · ');
+    document.getElementById('bloqueResumenFuncionario').style.display = 'block';
   } else {
-    // Restaurar campos si no es funcionario
-    camposCiudadano.forEach(fid => {
-      const el = document.getElementById(fid);
-      if (el) el.disabled = false;
-    });
-    gruposReadonly.forEach(gid => {
-      const el = document.getElementById(gid);
-      if (el) el.classList.remove('field-readonly');
-    });
-    document.querySelectorAll('#modal .readonly-badge').forEach(b => b.remove());
+    document.getElementById('bloqueResumenFuncionario').style.display = 'none';
   }
 
   controlarAnonimo();
@@ -1298,6 +1310,8 @@ async function editar(id) {
 }
 
 function cerrarModal() {
+  reporteEnEdicion = null;
+  document.getElementById('bloqueResumenFuncionario').style.display = 'none';
   document.getElementById('modal').classList.remove('open');
 }
 
@@ -1342,6 +1356,51 @@ function validarFormulario(body) {
 
 async function guardar() {
   const id = document.getElementById('rid').value;
+
+  if (USER_ROLE === 'funcionario' && !id) {
+    toast('Los funcionarios no pueden crear reportes desde aquí', false);
+    return;
+  }
+
+  if (USER_ROLE === 'funcionario' && id && reporteEnEdicion) {
+    const bodyFunc = {
+      titulo: reporteEnEdicion.titulo,
+      descripcion: reporteEnEdicion.descripcion ?? '',
+      estado: document.getElementById('estado').value,
+      esAnonimo: Number(reporteEnEdicion.esAnonimo),
+      idCategoria: Number(reporteEnEdicion.idCategoria),
+      idUbicacion: Number(reporteEnEdicion.idUbicacion),
+      idUsuario: reporteEnEdicion.idUsuario ? Number(reporteEnEdicion.idUsuario) : null
+    };
+
+    const prioridad = document.getElementById('prioridad').value;
+    const idProveedor = document.getElementById('idProveedor').value;
+
+    if (prioridad) {
+      bodyFunc.prioridad = prioridad;
+    }
+    if (idProveedor) {
+      bodyFunc.idProveedor = Number(idProveedor);
+    }
+
+    const resFunc = await fetch(`${API_REPORTES}?id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyFunc)
+    });
+    const dataFunc = await resFunc.json();
+
+    if (!resFunc.ok || dataFunc.error) {
+      toast(dataFunc.error ?? 'No se pudo actualizar el caso', false);
+      return;
+    }
+
+    toast(dataFunc.mensaje ?? 'Caso actualizado correctamente', true);
+    cerrarModal();
+    cargar();
+    return;
+  }
+
   const esAnonimo = document.getElementById('esAnonimo').checked ? 1 : 0;
 
   // Validar que haya ubicación antes de proceder
