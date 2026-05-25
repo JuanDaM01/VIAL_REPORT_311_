@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/session.php';
 requireRole();
 $rol = rolActual();
+$esCiudadano = ($rol === 'ciudadano');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -15,6 +16,26 @@ $rol = rolActual();
     body.role-ciudadano #grp-usuario-alerta {
       display: none !important;
     }
+    .page-intro {
+      color: var(--text2);
+      font-size: .88rem;
+      margin: -.5rem 0 1.25rem;
+      max-width: 640px;
+      line-height: 1.55;
+    }
+    .modal-section-title {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--accent);
+      margin: 0 0 .75rem;
+    }
+    .modal-section + .modal-section {
+      margin-top: 1.1rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--border);
+    }
   </style>
 </head>
 <body class="role-<?= htmlspecialchars($rol, ENT_QUOTES, 'UTF-8') ?>">
@@ -23,9 +44,16 @@ $rol = rolActual();
 
 <div class="page">
   <div class="page-header">
-    <h2><?= ($rol === 'ciudadano') ? 'Mis <span>Alertas Locales</span>' : 'Gestión de <span>Alertas Locales</span>' ?></h2>
+    <h2><?= $esCiudadano ? 'Mis <span>Alertas Locales</span>' : 'Gestión de <span>Alertas Locales</span>' ?></h2>
     <button class="btn btn-primary" onclick="abrirModal()">+ Nueva alerta</button>
   </div>
+
+  <?php if ($esCiudadano): ?>
+  <p class="page-intro">
+    Recibe avisos cuando haya reportes viales cerca de una zona que tú eliges.
+    Indica ciudad y el radio en kilómetros.
+  </p>
+  <?php endif; ?>
 
   <div class="table-wrap">
     <table>
@@ -33,69 +61,77 @@ $rol = rolActual();
         <tr>
           <th>ID</th>
           <th class="col-admin-alerta">Usuario</th>
-          <th class="col-admin-alerta">Rol</th>
-          <th>Ubicación</th>
+          <th>Zona</th>
           <th>Frecuencia</th>
           <th>Rango</th>
-          <th>Coordenadas</th>
           <th>Acciones</th>
         </tr>
       </thead>
-
       <tbody id="tbody">
-        <tr class="empty-row">
-          <td colspan="8">Cargando...</td>
-        </tr>
+        <tr class="empty-row"><td colspan="9">Cargando...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- Modal CREATE / UPDATE -->
 <div class="modal-overlay" id="modal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px;">
     <div class="modal-head">
-      <h3 id="modalTit">Nueva Alerta Local</h3>
-      <button onclick="cerrarModal()">✕</button>
+      <h3 id="modalTit">Nueva alerta</h3>
+      <button type="button" onclick="cerrarModal()" aria-label="Cerrar">✕</button>
     </div>
 
     <div class="modal-body">
       <input type="hidden" id="aid"/>
+      <input type="hidden" id="idUsuario" value="<?= $esCiudadano ? (int) ($_SESSION['usuario_id'] ?? 0) : '' ?>"/>
+
+      <p class="modal-section-title">Zona a vigilar</p>
 
       <div class="form-row">
-        <div class="form-group" id="grp-usuario-alerta">
-          <label>Usuario *</label>
-          <select id="idUsuario"></select>
-        </div>
-
         <div class="form-group">
-          <label>Ubicación *</label>
-          <select id="idUbicacion"></select>
+          <label>Departamento</label>
+          <input type="text" id="departamento" placeholder="Quindío"/>
+        </div>
+        <div class="form-group">
+          <label>Ciudad *</label>
+          <input type="text" id="ciudad" placeholder="Armenia" required/>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Frecuencia de alerta *</label>
-          <select id="frecuencia_alerta">
-            <option value="">Seleccione una frecuencia</option>
+          <label>Barrio</label>
+          <input type="text" id="barrio" placeholder="El Bosque"/>
+        </div>
+      </div>
+
+      <p class="modal-section-title">Cómo quieres que te avisen</p>
+
+      <div id="grp-usuario-alerta" class="form-group">
+        <label>Usuario *</label>
+        <select id="idUsuarioSelect"></select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Frecuencia *</label>
+          <select id="frecuencia_alerta" required>
+            <option value="">Seleccione</option>
             <option value="inmediata">Inmediata</option>
             <option value="diaria">Diaria</option>
             <option value="semanal">Semanal</option>
-            <option value="mensual">Mensual</option>
           </select>
         </div>
-
         <div class="form-group">
-          <label>Rango en kilómetros *</label>
-          <input type="number" step="0.01" min="0.1" id="rango_km" placeholder="Ej: 2.5"/>
+          <label>Radio (km) *</label>
+          <input type="number" step="0.01" min="0.1" max="50" id="rango_km" placeholder="2.5" required/>
         </div>
       </div>
     </div>
 
     <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardar()">Guardar</button>
+      <button type="button" class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="guardar()">Guardar</button>
     </div>
   </div>
 </div>
@@ -108,14 +144,11 @@ const USER_ID = <?= json_encode($_SESSION['usuario_id'] ?? null) ?>;
 
 const API_ALERTAS = '../api/alertas.php';
 const API_USUARIOS = '../api/usuarios.php';
-const API_UBICACIONES = '../api/ubicaciones.php';
 
 let usuarios = [];
-let ubicaciones = [];
 
 function escapeHtml(valor) {
   if (valor === null || valor === undefined || valor === '') return '—';
-
   return String(valor)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -125,78 +158,49 @@ function escapeHtml(valor) {
 }
 
 function textoUsuario(u) {
-  const apellido2 = u.apellido_2 ? ' ' + u.apellido_2 : '';
-  return `${u.nombres} ${u.apellido_1}${apellido2}`;
+  const ap2 = u.apellido_2 ? ' ' + u.apellido_2 : '';
+  return `${u.nombres} ${u.apellido_1}${ap2}`;
 }
 
-function textoUbicacion(u) {
-  const partes = [];
-
-  if (u.barrio) partes.push(u.barrio);
-  if (u.direccionTexto) partes.push(u.direccionTexto);
-  if (u.ciudad) partes.push(u.ciudad);
-
-  return partes.join(' - ');
+function textoZona(a) {
+  const partes = [a.barrio, a.ciudad, a.departamento].filter(Boolean);
+  return partes.length ? partes.join(' · ') : '—';
 }
 
-function textoUbicacionDesdeAlerta(a) {
-  const partes = [];
-
-  if (a.barrio) partes.push(a.barrio);
-  if (a.direccionTexto) partes.push(a.direccionTexto);
-  if (a.ciudad) partes.push(a.ciudad);
-
-  return partes.join(' - ');
+function limpiarZona() {
+  ['departamento', 'ciudad', 'barrio'].forEach((id) => {
+    document.getElementById(id).value = '';
+  });
 }
 
-function textoCoordenadas(a) {
-  if (!a.latitud && !a.longitud) {
-    return '—';
-  }
-
-  return `${a.latitud ?? '—'}, ${a.longitud ?? '—'}`;
+function llenarZona(a) {
+  document.getElementById('departamento').value = a.departamento ?? '';
+  document.getElementById('ciudad').value = a.ciudad ?? '';
+  document.getElementById('barrio').value = a.barrio ?? '';
 }
 
 async function cargarCatalogos() {
-  const peticiones = [fetch(API_UBICACIONES)];
-
   if (USER_ROLE !== 'ciudadano') {
-    peticiones.unshift(fetch(API_USUARIOS));
-  }
-
-  const resultados = await Promise.all(peticiones);
-
-  if (USER_ROLE !== 'ciudadano') {
-    usuarios = await resultados[0].json();
-    ubicaciones = await resultados[1].json();
+    const res = await fetch(API_USUARIOS);
+    usuarios = await res.json();
     llenarUsuarios();
-  } else {
-    ubicaciones = await resultados[0].json();
   }
-
-  llenarUbicaciones();
 }
 
 function llenarUsuarios(seleccionado = '') {
-  const select = document.getElementById('idUsuario');
+  const select = document.getElementById('idUsuarioSelect');
+  if (!select) return;
 
   select.innerHTML = '<option value="">Seleccione un usuario</option>' +
-    usuarios.map(u => `
+    usuarios.map((u) => `
       <option value="${u.idUsuario}" ${u.idUsuario == seleccionado ? 'selected' : ''}>
-        ${escapeHtml(textoUsuario(u))} - ${escapeHtml(u.rol)}
+        ${escapeHtml(textoUsuario(u))}
       </option>
     `).join('');
 }
 
-function llenarUbicaciones(seleccionado = '') {
-  const select = document.getElementById('idUbicacion');
-
-  select.innerHTML = '<option value="">Seleccione una ubicación</option>' +
-    ubicaciones.map(u => `
-      <option value="${u.idUbicacion}" ${u.idUbicacion == seleccionado ? 'selected' : ''}>
-        ${escapeHtml(textoUbicacion(u))}
-      </option>
-    `).join('');
+function colspanTabla() {
+  return USER_ROLE === 'ciudadano' ? 5 : 6;
 }
 
 async function cargar() {
@@ -207,65 +211,46 @@ async function cargar() {
   const res = await fetch(url);
   const data = await res.json();
   const tbody = document.getElementById('tbody');
-  const colspan = USER_ROLE === 'ciudadano' ? 6 : 8;
+  const colspan = colspanTabla();
 
   if (!res.ok || data.error) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">Error al cargar alertas.</td></tr>`;
-    toast(data.error ?? 'Error al cargar alertas', false);
+    const detalle = data.detalle ? ` (${data.detalle})` : '';
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">No se pudieron cargar las alertas.${escapeHtml(detalle)}</td></tr>`;
+    toast(data.error ?? 'Error al cargar', false);
     return;
   }
 
-  if (!data.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">No hay alertas locales registradas.</td></tr>`;
+  if (!Array.isArray(data) || !data.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">Aún no tienes alertas. Pulsa «+ Nueva alerta».</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = data.map(a => `
+  tbody.innerHTML = data.map((a) => `
     <tr>
       <td>#${a.idAlerta}</td>
-
       ${USER_ROLE !== 'ciudadano' ? `
-      <td class="col-admin-alerta">
-        <strong>${escapeHtml(a.usuario)}</strong>
-        <br>
-        <small>${escapeHtml(a.email)}</small>
-      </td>
-
-      <td class="col-admin-alerta">
-        <span class="badge badge-${escapeHtml(a.rol ?? 'usuario')}">
-          ${escapeHtml(a.rol)}
-        </span>
-      </td>
-      ` : ''}
-
-      <td>${escapeHtml(textoUbicacionDesdeAlerta(a))}</td>
-
-      <td>
-        <span class="badge badge-en_proceso">
-          ${escapeHtml(a.frecuencia_alerta)}
-        </span>
-      </td>
-
+      <td class="col-admin-alerta"><strong>${escapeHtml(a.usuario)}</strong></td>` : ''}
+      <td>${escapeHtml(textoZona(a))}</td>
+      <td><span class="badge badge-en_proceso">${escapeHtml(a.frecuencia_alerta)}</span></td>
       <td>${escapeHtml(a.rango_km)} km</td>
-
-      <td>${escapeHtml(textoCoordenadas(a))}</td>
-
       <td class="td-acc">
-        <button class="btn-edit" onclick="editar(${a.idAlerta})">✏ Editar</button>
-        <button class="btn-del" onclick="eliminar(${a.idAlerta})">🗑 Eliminar</button>
+        <button type="button" class="btn-edit" onclick="editar(${a.idAlerta})">Editar</button>
+        <button type="button" class="btn-del" onclick="eliminar(${a.idAlerta})">Eliminar</button>
       </td>
     </tr>
   `).join('');
 }
 
 function abrirModal() {
-  document.getElementById('modalTit').textContent = 'Nueva Alerta Local';
-
+  document.getElementById('modalTit').textContent = 'Nueva alerta';
   document.getElementById('aid').value = '';
-  document.getElementById('idUsuario').value = USER_ROLE === 'ciudadano' ? String(USER_ID) : '';
-  document.getElementById('idUbicacion').value = '';
+  limpiarZona();
   document.getElementById('frecuencia_alerta').value = '';
   document.getElementById('rango_km').value = '';
+
+  if (USER_ROLE !== 'ciudadano') {
+    document.getElementById('idUsuarioSelect').value = '';
+  }
 
   document.getElementById('modal').classList.add('open');
 }
@@ -275,23 +260,20 @@ async function editar(id) {
   const a = await res.json();
 
   if (!res.ok || a.error) {
-    toast(a.error ?? 'No se pudo cargar la alerta local', false);
+    toast(a.error ?? 'No se pudo abrir la alerta', false);
     return;
   }
 
-  document.getElementById('modalTit').textContent = 'Editar Alerta Local';
-
+  document.getElementById('modalTit').textContent = 'Editar alerta';
   document.getElementById('aid').value = a.idAlerta;
-
-  if (USER_ROLE === 'ciudadano') {
-    document.getElementById('idUsuario').value = String(USER_ID);
-  } else {
-    llenarUsuarios(a.idUsuario);
-  }
-
-  llenarUbicaciones(a.idUbicacion);
+  llenarZona(a);
   document.getElementById('frecuencia_alerta').value = a.frecuencia_alerta ?? '';
   document.getElementById('rango_km').value = a.rango_km ?? '';
+
+  if (USER_ROLE !== 'ciudadano') {
+    llenarUsuarios(a.idUsuario);
+    document.getElementById('idUsuarioSelect').value = a.idUsuario ?? '';
+  }
 
   document.getElementById('modal').classList.add('open');
 }
@@ -300,22 +282,29 @@ function cerrarModal() {
   document.getElementById('modal').classList.remove('open');
 }
 
+function obtenerZona() {
+  return {
+    departamento: document.getElementById('departamento').value.trim() || null,
+    ciudad: document.getElementById('ciudad').value.trim(),
+    barrio: document.getElementById('barrio').value.trim() || null
+  };
+}
+
 function construirBody() {
   const idUsuario = USER_ROLE === 'ciudadano'
     ? USER_ID
-    : (document.getElementById('idUsuario').value
-        ? Number(document.getElementById('idUsuario').value)
+    : (document.getElementById('idUsuarioSelect').value
+        ? Number(document.getElementById('idUsuarioSelect').value)
         : null);
+
+  const zona = obtenerZona();
 
   return {
     idUsuario,
-
-    idUbicacion: document.getElementById('idUbicacion').value
-      ? Number(document.getElementById('idUbicacion').value)
-      : null,
-
+    departamento: zona.departamento,
+    ciudad: zona.ciudad,
+    barrio: zona.barrio,
     frecuencia_alerta: document.getElementById('frecuencia_alerta').value,
-
     rango_km: document.getElementById('rango_km').value
       ? Number(document.getElementById('rango_km').value)
       : null
@@ -324,25 +313,21 @@ function construirBody() {
 
 function validarFormulario(body) {
   if (!body.idUsuario) {
-    toast('Debe seleccionar el usuario asociado', false);
+    toast('Usuario no válido', false);
     return false;
   }
-
-  if (!body.idUbicacion) {
-    toast('Debe seleccionar la ubicación asociada', false);
+  if (!body.ciudad) {
+    toast('Indica la ciudad de la zona', false);
     return false;
   }
-
   if (!body.frecuencia_alerta) {
-    toast('Debe seleccionar la frecuencia de la alerta', false);
+    toast('Selecciona la frecuencia', false);
     return false;
   }
-
   if (!body.rango_km || body.rango_km <= 0) {
-    toast('Debe indicar un rango válido en kilómetros', false);
+    toast('Indica un radio válido en km', false);
     return false;
   }
-
   return true;
 }
 
@@ -354,59 +339,46 @@ async function guardar() {
     return;
   }
 
-  const url = id ? `${API_ALERTAS}?id=${id}` : API_ALERTAS;
-  const method = id ? 'PUT' : 'POST';
-
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json'
-    },
+  const res = await fetch(id ? `${API_ALERTAS}?id=${id}` : API_ALERTAS, {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
 
   const data = await res.json();
 
   if (!res.ok || data.error) {
-    toast(data.error ?? 'No se pudo guardar la alerta local', false);
+    toast(data.error ?? 'No se pudo guardar', false);
     return;
   }
 
-  toast(data.mensaje ?? 'Alerta local guardada correctamente', true);
-
+  toast(data.mensaje ?? 'Alerta guardada', true);
   cerrarModal();
   cargar();
 }
 
 async function eliminar(id) {
-  if (!confirm(`¿Eliminar la alerta local #${id}?`)) {
+  if (!confirm('¿Eliminar esta alerta?')) {
     return;
   }
 
-  const res = await fetch(`${API_ALERTAS}?id=${id}`, {
-    method: 'DELETE'
-  });
-
+  const res = await fetch(`${API_ALERTAS}?id=${id}`, { method: 'DELETE' });
   const data = await res.json();
 
   if (!res.ok || data.error) {
-    toast(data.error ?? 'No se pudo eliminar la alerta local', false);
+    toast(data.error ?? 'No se pudo eliminar', false);
     return;
   }
 
-  toast(data.mensaje ?? 'Alerta local eliminada correctamente', true);
+  toast('Alerta eliminada', true);
   cargar();
 }
 
 function toast(msg, ok) {
   const t = document.getElementById('toast');
-
   t.textContent = msg;
   t.className = ok ? 'show ok' : 'show err';
-
-  setTimeout(() => {
-    t.className = '';
-  }, 3000);
+  setTimeout(() => { t.className = ''; }, 3000);
 }
 
 async function iniciar() {

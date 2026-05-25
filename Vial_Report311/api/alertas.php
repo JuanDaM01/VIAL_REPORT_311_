@@ -1,6 +1,7 @@
 <?php
 // api/alertas.php
-// CRUD de Alertas Locales asociadas a usuarios y ubicaciones
+// CRUD AlertaLocal — ER: frecuencia_alerta, rango_km, zona propia, idUsuario
+// DISPARA: AlertaLocal → Notificacion → Usuario (sin FK a entidad ubicacion)
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -13,9 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once '../config/database.php';
+require_once '../config/session.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
+$rolSesion = estaLogueado() ? rolActual() : '';
+$idUsuarioSesion = estaLogueado() ? (int) ($_SESSION['usuario_id'] ?? 0) : 0;
 
 function responder($data, int $codigo = 200): void
 {
@@ -37,8 +41,8 @@ function leerJson(): array
 
 function existeRegistro(PDO $pdo, string $tabla, string $campo, int $id): bool
 {
-    $tablasPermitidas = ['alerta_local', 'usuario', 'ubicacion'];
-    $camposPermitidos = ['idAlerta', 'idUsuario', 'idUbicacion'];
+    $tablasPermitidas = ['alerta_local', 'usuario'];
+    $camposPermitidos = ['idAlerta', 'idUsuario'];
 
     if (!in_array($tabla, $tablasPermitidas, true) || !in_array($campo, $camposPermitidos, true)) {
         return false;
@@ -51,80 +55,172 @@ function existeRegistro(PDO $pdo, string $tabla, string $campo, int $id): bool
     return (int) $st->fetchColumn() > 0;
 }
 
-function crearNotificacionAlerta(PDO $pdo, int $idUsuario, ?int $idUbicacion): void
+function validarFrecuencia(string $frecuencia): bool
 {
-    $mensaje = 'Se configuró una alerta local para una zona de interés.';
+    return in_array($frecuencia, ['inmediata', 'diaria', 'semanal'], true);
+}
 
-    if ($idUbicacion !== null) {
-        $sqlUbicacion = "SELECT barrio, ciudad, direccionTexto
-                         FROM ubicacion
-                         WHERE idUbicacion = ?";
+function normalizarDecimal($valor): ?float
+{
+    if ($valor === null || $valor === '') {
+        return null;
+    }
 
-        $stUbicacion = $pdo->prepare($sqlUbicacion);
-        $stUbicacion->execute([$idUbicacion]);
-        $ubicacion = $stUbicacion->fetch();
+    return (float) $valor;
+}
 
-        if ($ubicacion) {
-            $zona = trim(
-                ($ubicacion['barrio'] ?? '') . ' ' .
-                ($ubicacion['direccionTexto'] ?? '') . ' ' .
-                ($ubicacion['ciudad'] ?? '')
-            );
+function alertaPerteneceAUsuario(PDO $pdo, int $idAlerta, int $idUsuario): bool
+{
+    $st = $pdo->prepare('SELECT COUNT(*) FROM alerta_local WHERE idAlerta = ? AND idUsuario = ?');
+    $st->execute([$idAlerta, $idUsuario]);
 
-            $mensaje = 'Se configuró una alerta local para la zona: ' . $zona . '.';
+    return (int) $st->fetchColumn() > 0;
+}
+
+function exigirAccesoAlerta(PDO $pdo, int $idAlerta): void
+{
+    if ($GLOBALS['rolSesion'] === 'ciudadano') {
+        if (!$GLOBALS['idUsuarioSesion'] || !alertaPerteneceAUsuario($pdo, $idAlerta, $GLOBALS['idUsuarioSesion'])) {
+            responder(['error' => 'No puede modificar alertas de otro usuario'], 403);
+        }
+    }
+}
+
+/** Columnas de zona en alerta_local (no usa tabla ubicacion). */
+function extraerZona(array $data): array
+{
+    $zona = $data['zona'] ?? $data['ubicacion'] ?? $data;
+
+    $ciudad = trim((string) ($zona['ciudad'] ?? ''));
+
+    if ($ciudad === '') {
+        responder(['error' => 'La ciudad de la zona de alerta es obligatoria'], 400);
+    }
+
+    return [
+        'departamento' => !empty($zona['departamento']) ? trim((string) $zona['departamento']) : null,
+        'ciudad' => $ciudad,
+        'barrio' => !empty($zona['barrio']) ? trim((string) $zona['barrio']) : null,
+    ];
+}
+
+function columnaExiste(PDO $pdo, string $tabla, string $columna): bool
+{
+    $st = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?"
+    );
+    $st->execute([$tabla, $columna]);
+
+    return (int) $st->fetchColumn() > 0;
+}
+
+/** Actualiza la tabla si aún tiene el esquema antiguo (idUbicacion). */
+function asegurarEsquemaAlerta(PDO $pdo): void
+{
+    if (columnaExiste($pdo, 'alerta_local', 'ciudad')) {
+        return;
+    }
+
+    $alteraciones = [
+        'ALTER TABLE alerta_local ADD COLUMN departamento VARCHAR(100) NULL',
+        'ALTER TABLE alerta_local ADD COLUMN ciudad VARCHAR(100) NULL',
+        'ALTER TABLE alerta_local ADD COLUMN barrio VARCHAR(100) NULL',
+    ];
+
+    foreach ($alteraciones as $sql) {
+        try {
+            $pdo->exec($sql);
+        } catch (PDOException $e) {
+            // Columna ya agregada en intento paralelo
         }
     }
 
+    if (columnaExiste($pdo, 'alerta_local', 'idUbicacion')) {
+        $pdo->exec(
+            'UPDATE alerta_local a
+             INNER JOIN ubicacion u ON a.idUbicacion = u.idUbicacion
+             SET a.departamento = u.departamento,
+                 a.ciudad = u.ciudad,
+                 a.barrio = u.barrio'
+        );
+
+        $stFk = $pdo->query(
+            "SELECT CONSTRAINT_NAME
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'alerta_local'
+               AND COLUMN_NAME = 'idUbicacion'
+               AND REFERENCED_TABLE_NAME IS NOT NULL
+             LIMIT 1"
+        );
+        $fk = $stFk->fetchColumn();
+
+        if ($fk) {
+            $pdo->exec('ALTER TABLE alerta_local DROP FOREIGN KEY `' . str_replace('`', '', $fk) . '`');
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE alerta_local DROP COLUMN idUbicacion');
+        } catch (PDOException $e) {
+            // Ignorar si ya se eliminó
+        }
+    }
+}
+
+function sqlSelectAlertas(): string
+{
+    return "SELECT
+                a.idAlerta,
+                a.frecuencia_alerta,
+                a.rango_km,
+                a.departamento,
+                a.ciudad,
+                a.barrio,
+                a.idUsuario,
+                CONCAT(u.nombres, ' ', u.apellido_1) AS usuario,
+                u.email
+            FROM alerta_local a
+            LEFT JOIN usuario u ON a.idUsuario = u.idUsuario";
+}
+
+function crearNotificacionAlerta(PDO $pdo, int $idUsuario, int $idAlerta, array $zona, float $rangoKm): void
+{
+    $textoZona = trim(
+        ($zona['barrio'] ?? '') . ' ' .
+        ($zona['ciudad'] ?? '')
+    );
+
+    $mensaje = $textoZona !== ''
+        ? 'Alerta activa en la zona: ' . $textoZona . ' (radio ' . $rangoKm . ' km).'
+        : 'Se configuró una alerta local para una zona de interés.';
+
     $sql = "INSERT INTO notificacion
-                (titulo, mensaje, tipo, leida, idUsuario, idReporte)
-            VALUES (?, ?, 'alerta_local', 0, ?, NULL)";
+                (titulo, mensaje, tipo, leida, idUsuario, idReporte, idAlerta)
+            VALUES (?, ?, 'alerta_local', 0, ?, NULL, ?)";
 
     $st = $pdo->prepare($sql);
     $st->execute([
         'Alerta local configurada',
         $mensaje,
-        $idUsuario
+        $idUsuario,
+        $idAlerta
     ]);
 }
 
 try {
     $pdo = getConnection();
+    asegurarEsquemaAlerta($pdo);
 
     switch ($method) {
 
-        // =====================================================
-        // GET: listar alertas o consultar una por ID
-        // Filtros:
-        // api/alertas.php?idUsuario=1
-        // api/alertas.php?idUbicacion=2
-        // =====================================================
         case 'GET':
 
             if ($id) {
-                $sql = "SELECT
-                            a.idAlerta,
-                            a.frecuencia_alerta,
-                            a.rango_km,
-                            a.idUbicacion,
-                            a.idUsuario,
-
-                            CONCAT(u.nombres, ' ', u.apellido_1) AS usuario,
-                            u.email,
-                            u.rol,
-
-                            ub.departamento,
-                            ub.ciudad,
-                            ub.barrio,
-                            ub.direccionTexto,
-                            ub.latitud,
-                            ub.longitud
-                        FROM alerta_local a
-                        LEFT JOIN usuario u
-                            ON a.idUsuario = u.idUsuario
-                        LEFT JOIN ubicacion ub
-                            ON a.idUbicacion = ub.idUbicacion
-                        WHERE a.idAlerta = ?";
-
+                $sql = sqlSelectAlertas() . ' WHERE a.idAlerta = ?';
                 $st = $pdo->prepare($sql);
                 $st->execute([$id]);
                 $alerta = $st->fetch();
@@ -133,107 +229,82 @@ try {
                     responder(['error' => 'Alerta local no encontrada'], 404);
                 }
 
+                if ($rolSesion === 'ciudadano' && (int) $alerta['idUsuario'] !== $idUsuarioSesion) {
+                    responder(['error' => 'No autorizado'], 403);
+                }
+
                 responder($alerta);
             }
 
             $where = [];
             $params = [];
 
-            if (!empty($_GET['idUsuario'])) {
-                $where[] = "a.idUsuario = ?";
+            if ($rolSesion === 'ciudadano') {
+                $where[] = 'a.idUsuario = ?';
+                $params[] = $idUsuarioSesion;
+            } elseif (!empty($_GET['idUsuario'])) {
+                $where[] = 'a.idUsuario = ?';
                 $params[] = (int) $_GET['idUsuario'];
             }
 
-            if (!empty($_GET['idUbicacion'])) {
-                $where[] = "a.idUbicacion = ?";
-                $params[] = (int) $_GET['idUbicacion'];
-            }
-
-            $sql = "SELECT
-                        a.idAlerta,
-                        a.frecuencia_alerta,
-                        a.rango_km,
-                        a.idUbicacion,
-                        a.idUsuario,
-
-                        CONCAT(u.nombres, ' ', u.apellido_1) AS usuario,
-                        u.email,
-                        u.rol,
-
-                        ub.departamento,
-                        ub.ciudad,
-                        ub.barrio,
-                        ub.direccionTexto,
-                        ub.latitud,
-                        ub.longitud
-                    FROM alerta_local a
-                    LEFT JOIN usuario u
-                        ON a.idUsuario = u.idUsuario
-                    LEFT JOIN ubicacion ub
-                        ON a.idUbicacion = ub.idUbicacion";
+            $sql = sqlSelectAlertas();
 
             if (!empty($where)) {
-                $sql .= " WHERE " . implode(" AND ", $where);
+                $sql .= ' WHERE ' . implode(' AND ', $where);
             }
 
-            $sql .= " ORDER BY a.idAlerta DESC";
+            $sql .= ' ORDER BY a.idAlerta DESC';
 
             $st = $pdo->prepare($sql);
             $st->execute($params);
 
             responder($st->fetchAll());
 
-        // =====================================================
-        // POST: crear alerta local
-        // =====================================================
         case 'POST':
 
             $data = leerJson();
+            $frecuencia = trim((string) ($data['frecuencia_alerta'] ?? ''));
 
-            if (empty($data['frecuencia_alerta'])) {
-                responder(['error' => 'La frecuencia de la alerta es obligatoria'], 400);
+            if ($frecuencia === '' || !validarFrecuencia($frecuencia)) {
+                responder(['error' => 'Frecuencia inválida (inmediata, diaria o semanal)'], 400);
             }
 
             if (empty($data['rango_km'])) {
                 responder(['error' => 'El rango en kilómetros es obligatorio'], 400);
             }
 
-            if (empty($data['idUsuario'])) {
-                responder(['error' => 'Debe indicar el usuario asociado a la alerta'], 400);
-            }
+            $idUsuario = $rolSesion === 'ciudadano'
+                ? $idUsuarioSesion
+                : (int) ($data['idUsuario'] ?? 0);
 
-            if (empty($data['idUbicacion'])) {
-                responder(['error' => 'Debe indicar la ubicación asociada a la alerta'], 400);
-            }
-
-            $idUsuario = (int) $data['idUsuario'];
-            $idUbicacion = (int) $data['idUbicacion'];
-
-            if (!existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
+            if ($idUsuario < 1 || !existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
                 responder(['error' => 'El usuario indicado no existe'], 400);
             }
 
-            if (!existeRegistro($pdo, 'ubicacion', 'idUbicacion', $idUbicacion)) {
-                responder(['error' => 'La ubicación indicada no existe'], 400);
-            }
+            $zona = extraerZona($data);
+            $rangoKm = (float) $data['rango_km'];
 
             $pdo->beginTransaction();
 
             $sql = "INSERT INTO alerta_local
-                        (frecuencia_alerta, rango_km, idUbicacion, idUsuario)
-                    VALUES (?, ?, ?, ?)";
+                        (frecuencia_alerta, rango_km,
+                         departamento, ciudad, barrio,
+                         idUsuario)
+                    VALUES (?, ?, ?, ?, ?, ?)";
 
             $st = $pdo->prepare($sql);
             $st->execute([
-                trim($data['frecuencia_alerta']),
+                $frecuencia,
                 (float) $data['rango_km'],
-                $idUbicacion,
+                $zona['departamento'],
+                $zona['ciudad'],
+                $zona['barrio'],
                 $idUsuario
             ]);
 
             $idAlerta = (int) $pdo->lastInsertId();
 
-            crearNotificacionAlerta($pdo, $idUsuario, $idUbicacion);
+            crearNotificacionAlerta($pdo, $idUsuario, $idAlerta, $zona, $rangoKm);
 
             $pdo->commit();
 
@@ -242,9 +313,6 @@ try {
                 'idAlerta' => $idAlerta
             ], 201);
 
-        // =====================================================
-        // PUT: actualizar alerta local
-        // =====================================================
         case 'PUT':
 
             if (!$id) {
@@ -255,47 +323,45 @@ try {
                 responder(['error' => 'Alerta local no encontrada'], 404);
             }
 
-            $data = leerJson();
+            exigirAccesoAlerta($pdo, $id);
 
-            if (empty($data['frecuencia_alerta'])) {
-                responder(['error' => 'La frecuencia de la alerta es obligatoria'], 400);
+            $data = leerJson();
+            $frecuencia = trim((string) ($data['frecuencia_alerta'] ?? ''));
+
+            if ($frecuencia === '' || !validarFrecuencia($frecuencia)) {
+                responder(['error' => 'Frecuencia inválida (inmediata, diaria o semanal)'], 400);
             }
 
             if (empty($data['rango_km'])) {
                 responder(['error' => 'El rango en kilómetros es obligatorio'], 400);
             }
 
-            if (empty($data['idUsuario'])) {
-                responder(['error' => 'Debe indicar el usuario asociado a la alerta'], 400);
-            }
+            $idUsuario = $rolSesion === 'ciudadano'
+                ? $idUsuarioSesion
+                : (int) ($data['idUsuario'] ?? 0);
 
-            if (empty($data['idUbicacion'])) {
-                responder(['error' => 'Debe indicar la ubicación asociada a la alerta'], 400);
-            }
-
-            $idUsuario = (int) $data['idUsuario'];
-            $idUbicacion = (int) $data['idUbicacion'];
-
-            if (!existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
+            if ($idUsuario < 1 || !existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
                 responder(['error' => 'El usuario indicado no existe'], 400);
             }
 
-            if (!existeRegistro($pdo, 'ubicacion', 'idUbicacion', $idUbicacion)) {
-                responder(['error' => 'La ubicación indicada no existe'], 400);
-            }
+            $zona = extraerZona($data);
 
             $sql = "UPDATE alerta_local
                     SET frecuencia_alerta = ?,
                         rango_km = ?,
-                        idUbicacion = ?,
+                        departamento = ?,
+                        ciudad = ?,
+                        barrio = ?,
                         idUsuario = ?
                     WHERE idAlerta = ?";
 
             $st = $pdo->prepare($sql);
             $st->execute([
-                trim($data['frecuencia_alerta']),
+                $frecuencia,
                 (float) $data['rango_km'],
-                $idUbicacion,
+                $zona['departamento'],
+                $zona['ciudad'],
+                $zona['barrio'],
                 $idUsuario,
                 $id
             ]);
@@ -305,9 +371,6 @@ try {
                 'idAlerta' => $id
             ]);
 
-        // =====================================================
-        // DELETE: eliminar alerta local
-        // =====================================================
         case 'DELETE':
 
             if (!$id) {
@@ -318,8 +381,9 @@ try {
                 responder(['error' => 'Alerta local no encontrada'], 404);
             }
 
-            $sql = "DELETE FROM alerta_local WHERE idAlerta = ?";
-            $st = $pdo->prepare($sql);
+            exigirAccesoAlerta($pdo, $id);
+
+            $st = $pdo->prepare('DELETE FROM alerta_local WHERE idAlerta = ?');
             $st->execute([$id]);
 
             responder(['mensaje' => 'Alerta local eliminada correctamente']);

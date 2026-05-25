@@ -4,7 +4,7 @@
 --
 -- Correcciones aplicadas:
 --   1. Entidad NOTIFICACION como entidad propia (faltaba)
---   2. Relación DISPARA: AlertaLocal → Notificacion → Usuario
+--   2. Relación DISPARA (tachada Ubicacion–AlertaLocal): AlertaLocal → Notificacion → Usuario
 --   3. Relación VOTAR N:N separada en tabla votar
 --   4. Eliminada relación directa VOTO en reporte (contador derivado via trigger)
 --   5. Campo 'apellidos' eliminado (redundante; ya existen apellido_1 y apellido_2)
@@ -273,7 +273,8 @@ CREATE TABLE comentario (
 
 -- ============================================================
 -- ALERTA_LOCAL
--- Relación DISPARA (ubicacion → alerta_local → usuario)
+-- Atributos ER: frecuencia_alerta, rango_km (+ zona propia, sin FK a ubicacion)
+-- Relación DISPARA → notificacion → usuario (NO hay vínculo con entidad ubicacion)
 -- ============================================================
 
 CREATE TABLE alerta_local (
@@ -281,13 +282,19 @@ CREATE TABLE alerta_local (
     frecuencia_alerta ENUM('inmediata','diaria','semanal') NOT NULL DEFAULT 'diaria',
     rango_km          DECIMAL(5,2) NOT NULL DEFAULT 5.00,
 
-    idUbicacion       INT DEFAULT NULL,
-    idUsuario         INT DEFAULT NULL,
+    departamento      VARCHAR(100),
+    ciudad            VARCHAR(100),
+    barrio            VARCHAR(100),
+    direccionTexto    VARCHAR(255),
+    latitud           DECIMAL(10,7),
+    longitud          DECIMAL(10,7),
 
-    FOREIGN KEY (idUbicacion)
-        REFERENCES ubicacion(idUbicacion) ON DELETE SET NULL,
+    idUsuario         INT NOT NULL,
+
     FOREIGN KEY (idUsuario)
-        REFERENCES usuario(idUsuario) ON DELETE SET NULL
+        REFERENCES usuario(idUsuario) ON DELETE CASCADE,
+
+    INDEX idx_alerta_usuario (idUsuario)
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -414,12 +421,12 @@ VALUES
   ('El proveedor ya fue notificado para atender el caso.',               2,5),
   ('Se requiere validar la zona exacta del daño.',                       3,5);
 
--- Alertas locales
-INSERT INTO alerta_local (frecuencia_alerta, rango_km, idUbicacion, idUsuario)
+-- Alertas locales (zona propia; sin idUbicacion — relación con ubicacion anulada en ER)
+INSERT INTO alerta_local (frecuencia_alerta, rango_km, departamento, ciudad, barrio, direccionTexto, latitud, longitud, idUsuario)
 VALUES
-  ('diaria',    2.50,1,1),
-  ('semanal',   5.00,2,2),
-  ('inmediata', 1.00,3,3);
+  ('diaria',    2.50,'Quindío','Armenia','El Bosque',     'Calle 10 # 15-30',   4.5339000,-75.6811000,1),
+  ('semanal',   5.00,'Quindío','Armenia','La Castellana','Carrera 19 # 8-45',  4.5362000,-75.6743000,2),
+  ('inmediata', 1.00,'Quindío','Armenia','Centro',        'Carrera 14 # 5-20',  4.5350000,-75.6758000,3);
 
 -- Notificaciones (entidad faltante ahora correctamente integrada)
 INSERT INTO notificacion (titulo, mensaje, tipo, leida, idUsuario, idReporte, idAlerta)

@@ -83,14 +83,12 @@ try {
                             u.longitud,
                             COUNT(DISTINCT r.idReporte) AS totalReportes,
                             COUNT(DISTINCT pcu.idProveedor) AS totalProveedores,
-                            COUNT(DISTINCT a.idAlerta) AS totalAlertas
+                            0 AS totalAlertas
                         FROM ubicacion u
                         LEFT JOIN reporte r
                             ON r.idUbicacion = u.idUbicacion
                         LEFT JOIN proveedor_categoria_ubicacion pcu
                             ON pcu.idUbicacion = u.idUbicacion
-                        LEFT JOIN alerta_local a
-                            ON a.idUbicacion = u.idUbicacion
                         WHERE u.idUbicacion = ?
                         GROUP BY
                             u.idUbicacion,
@@ -122,14 +120,12 @@ try {
                         u.longitud,
                         COUNT(DISTINCT r.idReporte) AS totalReportes,
                         COUNT(DISTINCT pcu.idProveedor) AS totalProveedores,
-                        COUNT(DISTINCT a.idAlerta) AS totalAlertas
+                        0 AS totalAlertas
                     FROM ubicacion u
                     LEFT JOIN reporte r
                         ON r.idUbicacion = u.idUbicacion
                     LEFT JOIN proveedor_categoria_ubicacion pcu
                         ON pcu.idUbicacion = u.idUbicacion
-                    LEFT JOIN alerta_local a
-                        ON a.idUbicacion = u.idUbicacion
                     GROUP BY
                         u.idUbicacion,
                         u.departamento,
@@ -242,12 +238,6 @@ try {
                              WHERE idUbicacion = ?";
             $stProveedor = $pdo->prepare($sqlProveedor);
             $stProveedor->execute([$id]);
-
-            $sqlAlerta = "UPDATE alerta_local
-                          SET idUbicacion = NULL
-                          WHERE idUbicacion = ?";
-            $stAlerta = $pdo->prepare($sqlAlerta);
-            $stAlerta->execute([$id]);
 
             $sqlUbicacion = "DELETE FROM ubicacion
                              WHERE idUbicacion = ?";

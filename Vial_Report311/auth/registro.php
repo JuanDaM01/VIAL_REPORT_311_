@@ -254,13 +254,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       border-color: rgba(245,166,35,.6);
       box-shadow: 0 0 0 3px rgba(245,166,35,.1);
     }
-    .field-hint {
-      font-size: .7rem;
-      color: var(--muted);
-      margin-top: 2px;
-      line-height: 1.4;
-    }
-
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     .field-group label { font-size: .75rem; font-weight: 600; color: var(--text2); letter-spacing: .25px; }
 
@@ -440,9 +433,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
-      <!-- Fecha de nacimiento (ER: dia, mes, año) -->
       <div class="field-group">
-        <label>Fecha de nacimiento</label>
+        <label>Fecha de nacimiento <span style="font-weight:400;color:var(--muted)">
         <div class="form-row-3">
           <div class="field-wrap">
             <input class="no-icon" type="number" name="fecha_nacimiento_dia" id="fecha_nacimiento_dia"
@@ -460,34 +452,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               value="<?= htmlspecialchars($datos['fecha_nacimiento_ano']) ?>"/>
           </div>
         </div>
-        <span class="field-hint">Opcional. Si la completas, incluye día, mes y año.</span>
       </div>
 
-      <!-- Edad -->
-      <div class="form-row-2">
-        <div class="field-group">
-          <label for="edad">Edad</label>
-          <div class="field-wrap">
-            <span class="field-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </span>
-            <input id="edad" type="number" name="edad" min="14" max="120"
-              placeholder="Ej: 28 (opcional)"
-              value="<?= htmlspecialchars($datos['edad']) ?>"/>
-          </div>
-          <span class="field-hint">Se calcula sola si indicas la fecha de nacimiento.</span>
-        </div>
-
-        <div class="field-group">
-          <label for="tipoRegistro">Tipo de registro *</label>
-          <select id="tipoRegistro" name="tipoRegistro" required>
-            <option value="local" <?= $datos['tipoRegistro'] === 'local' ? 'selected' : '' ?>>Registro local (correo)</option>
-            <option value="google" <?= $datos['tipoRegistro'] === 'google' ? 'selected' : '' ?>>Google</option>
-            <option value="facebook" <?= $datos['tipoRegistro'] === 'facebook' ? 'selected' : '' ?>>Facebook</option>
-          </select>
-          <span class="field-hint">Atributo del usuario según el modelo ER.</span>
+      <div class="field-group">
+        <label for="edad">Edad <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <div class="field-wrap">
+          <span class="field-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <input id="edad" type="number" name="edad" min="14" max="120"
+            placeholder="Ej: 28"
+            value="<?= htmlspecialchars($datos['edad']) ?>"/>
         </div>
       </div>
+
+      <input type="hidden" name="tipoRegistro" value="local"/>
 
       <!-- Email -->
       <div class="field-group">
