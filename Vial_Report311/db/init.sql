@@ -35,6 +35,28 @@ CREATE TABLE categoria (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- PROVEEDOR
+-- Relación binaria SE_RELACIONA con Categoria (idCategoria FK)
+-- Debe crearse antes que USUARIO porque usuario.idProveedor la referencia
+-- ============================================================
+
+CREATE TABLE proveedor (
+    idProveedor         INT AUTO_INCREMENT PRIMARY KEY,
+    nombreEntidad       VARCHAR(150) NOT NULL,
+    telefono            VARCHAR(20),
+    correo              VARCHAR(150),
+    nivel               VARCHAR(50),
+    solucionesResueltas INT UNSIGNED NOT NULL DEFAULT 0,
+
+    -- Relación binaria SE_RELACIONA: Proveedor → Categoria
+    -- Un proveedor atiende un tipo de problema (alineado con el ER)
+    idCategoria         INT DEFAULT NULL,
+
+    FOREIGN KEY (idCategoria)
+        REFERENCES categoria(idCategoria) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- USUARIO
 -- Entidad única con campo rol (ciudadano | funcionario | administrador)
 -- ============================================================
@@ -64,7 +86,7 @@ CREATE TABLE usuario (
     tipoRegistro          ENUM('local','google','facebook')               NOT NULL DEFAULT 'local',
     cantidadReportes      INT UNSIGNED NOT NULL DEFAULT 0,
 
-    -- Solo funcionario
+    -- Solo funcionario (relación TIENE con Proveedor)
     cargo                 VARCHAR(100),
     nivelAcceso           TINYINT UNSIGNED,
     idProveedor           INT DEFAULT NULL,
@@ -78,40 +100,6 @@ CREATE TABLE usuario (
     INDEX idx_usuario_rol   (rol),
     INDEX idx_usuario_email (email),
     FOREIGN KEY (idProveedor) REFERENCES proveedor(idProveedor) ON DELETE SET NULL
-) ENGINE=InnoDB;
-
--- ============================================================
--- PROVEEDOR
--- ============================================================
-
-CREATE TABLE proveedor (
-    idProveedor        INT AUTO_INCREMENT PRIMARY KEY,
-    nombreEntidad      VARCHAR(150) NOT NULL,
-    telefono           VARCHAR(20),
-    correo             VARCHAR(150),
-    nivel              VARCHAR(50),
-    solucionesResueltas INT UNSIGNED NOT NULL DEFAULT 0
-) ENGINE=InnoDB;
-
--- ============================================================
--- PROVEEDOR_CATEGORIA_UBICACION
--- Relación tripartita GESTIONA
--- Determina qué proveedor atiende cada categoría en cada zona
--- ============================================================
-
-CREATE TABLE proveedor_categoria_ubicacion (
-    idProveedor INT NOT NULL,
-    idCategoria INT NOT NULL,
-    idUbicacion INT NOT NULL,
-
-    PRIMARY KEY (idProveedor, idCategoria, idUbicacion),
-
-    FOREIGN KEY (idProveedor)
-        REFERENCES proveedor(idProveedor) ON DELETE CASCADE,
-    FOREIGN KEY (idCategoria)
-        REFERENCES categoria(idCategoria) ON DELETE CASCADE,
-    FOREIGN KEY (idUbicacion)
-        REFERENCES ubicacion(idUbicacion) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -341,18 +329,12 @@ VALUES
   ('otro',         'Otro tipo de problema vial');
 
 -- Proveedores municipales
-INSERT INTO proveedor (nombreEntidad, telefono, correo, nivel, solucionesResueltas)
+-- idCategoria: 1=hueco, 2=señalizacion, 3=anden, 4=mal_parqueo, 5=semaforo, 6=alumbrado, 7=otro
+INSERT INTO proveedor (nombreEntidad, telefono, correo, nivel, solucionesResueltas, idCategoria)
 VALUES
-  ('Secretaría de Obras Públicas','67400000','obras@armenia.gov.co',  'municipal',145),
-  ('Empresas Públicas Armenia',   '67411111','epa@armenia.gov.co',     'municipal', 89),
-  ('Tránsito y Transporte',       '67422222','transito@armenia.gov.co','municipal', 67);
-
--- Relación proveedor-categoría-ubicación
-INSERT INTO proveedor_categoria_ubicacion (idProveedor, idCategoria, idUbicacion)
-VALUES
-  (1,1,1),(1,1,2),(1,3,3),
-  (2,6,4),(2,7,4),
-  (3,2,5),(3,4,1),(3,5,2);
+  ('Secretaría de Obras Públicas','67400000','obras@armenia.gov.co',  'municipal',145, 1),
+  ('Empresas Públicas Armenia',   '67411111','epa@armenia.gov.co',     'municipal', 89, 6),
+  ('Tránsito y Transporte',       '67422222','transito@armenia.gov.co','municipal', 67, 5);
 
 -- Usuarios
 INSERT INTO usuario
