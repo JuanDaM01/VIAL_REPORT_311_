@@ -524,14 +524,16 @@ t.idFuncionario,
             $idUsuario = null;
 
             if ($esAnonimo === 0) {
-                if (empty($data['idUsuario'])) {
-                    responder(['error' => 'Para un reporte no anónimo debe enviar idUsuario'], 400);
-                }
+                // Si no viene idUsuario en el payload, conservar el propietario original
+                if (!empty($data['idUsuario'])) {
+                    $idUsuario = (int) $data['idUsuario'];
 
-                $idUsuario = (int) $data['idUsuario'];
-
-                if (!existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
-                    responder(['error' => 'El usuario indicado no existe'], 400);
+                    if (!existeRegistro($pdo, 'usuario', 'idUsuario', $idUsuario)) {
+                        responder(['error' => 'El usuario indicado no existe'], 400);
+                    }
+                } else {
+                    // Mantener el idUsuario que ya tiene el reporte en la BD
+                    $idUsuario = $reporteActual['idUsuario'] ?? null;
                 }
             }
 

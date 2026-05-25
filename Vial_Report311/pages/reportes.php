@@ -929,22 +929,7 @@ function renderizarTabla() {
       ? '<span class="badge badge-anonimo">Anónimo</span>'
       : escapeHtml(r.nombreUsuario ?? '—');
 
-    // Determinar si el usuario actual puede editar/eliminar este reporte
-    let accionesHtml = '';
-    const puedeEditar = (USER_ROLE === 'administrador') ||
-                        (USER_ROLE === 'funcionario') ||
-                        (USER_ROLE === 'ciudadano' && r.idUsuario == USER_ID);
-
-    if (puedeEditar) {
-      accionesHtml = `
-        <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
-        <button class="btn-del" onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
-      `;
-    } else {
-      accionesHtml = `<span class="badge badge-recibido" style="opacity: 0.65; cursor: not-allowed; padding: 4px 10px; font-size: 0.72rem;">Sólo lectura</span>`;
-    }
-
-    // Columna Votos interactiva o estándar
+    // ── Columna Votos interactiva ──────────────────────────────
     let votosColHtml = '';
     if (USER_ROLE === 'ciudadano') {
       const yaVoto = misVotos.has(Number(r.idReporte));
@@ -952,30 +937,45 @@ function renderizarTabla() {
       const label = yaVoto ? '✓ Votado' : '👍 Votar';
       votosColHtml = `
         <button class="btn-vote${activeClass}" onclick="toggleVoto(${r.idReporte})">
-          ${label} <span class="badge badge-en_proceso" style="background: rgba(255,255,255,0.25); color: inherit; padding: 1px 6px;">${r.totalVotos ?? 0}</span>
+          ${label} <span class="badge badge-en_proceso" style="background:rgba(255,255,255,0.25);color:inherit;padding:1px 6px;">${r.totalVotos ?? 0}</span>
         </button>
       `;
     } else {
-      votosColHtml = `
-        <span class="badge badge-en_proceso">
-          ${escapeHtml(r.totalVotos ?? 0)}
-        </span>
+      votosColHtml = `<span class="badge badge-en_proceso">${escapeHtml(r.totalVotos ?? 0)}</span>`;
+    }
+
+    // ── Columna Acciones según rol y pestaña activa ────────────
+    let accionesHtml = '';
+
+    if (USER_ROLE === 'administrador' || USER_ROLE === 'funcionario') {
+      // Admin / Funcionario: siempre puede editar y eliminar
+      accionesHtml = `
+        <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
+        <button class="btn-del"  onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
       `;
+    } else if (USER_ROLE === 'ciudadano') {
+      if (vistaActual === 'mis') {
+        // Mis Reportes: editar y eliminar propios
+        accionesHtml = `
+          <button class="btn-edit" onclick="editar(${r.idReporte})">✏ Editar</button>
+          <button class="btn-del"  onclick="eliminar(${r.idReporte}, '${escapeHtml(r.titulo)}')">🗑 Eliminar</button>
+        `;
+      } else {
+        // Todos los Reportes: sólo lectura (votar y comentar ya están en otras columnas)
+        accionesHtml = `<span class="badge badge-recibido" style="opacity:0.65;cursor:not-allowed;padding:4px 10px;font-size:.72rem;">Sólo lectura</span>`;
+      }
     }
 
     return `
       <tr>
         <td>
-          <strong>${escapeHtml(r.numeroCaso ?? 'Sin ticket')}</strong>
-          <br>
+          <strong>${escapeHtml(r.numeroCaso ?? 'Sin ticket')}</strong><br>
           <small>#${escapeHtml(r.idReporte)}</small>
         </td>
 
         <td>
-          <strong>${escapeHtml(r.titulo)}</strong>
-          <br>
-          <small>${escapeHtml(r.descripcion ?? '')}</small>
-          <br>
+          <strong>${escapeHtml(r.titulo)}</strong><br>
+          <small>${escapeHtml(r.descripcion ?? '')}</small><br>
           <button class="btn-comment" onclick="abrirCommentsModal(${r.idReporte})">💬 Comentarios</button>
         </td>
 
@@ -987,9 +987,7 @@ function renderizarTabla() {
           </span>
         </td>
 
-        <td>
-          ${votosColHtml}
-        </td>
+        <td>${votosColHtml}</td>
 
         <td class="col-admin">
           <span class="badge badge-${escapeHtml(r.prioridad ?? 'media')}">
@@ -1002,13 +1000,12 @@ function renderizarTabla() {
         <td>${escapeHtml(r.ubicacion ?? '—')}</td>
         <td>${escapeHtml(formatearFecha(r.fechaCreacion))}</td>
 
-        <td class="td-acc">
-          ${accionesHtml}
-        </td>
+        <td class="td-acc">${accionesHtml}</td>
       </tr>
     `;
   }).join('');
 }
+
 
 function abrirModal() {
   document.getElementById('modalTit').textContent = 'Nuevo Reporte';
@@ -1232,9 +1229,12 @@ async function guardar() {
     idUsuario: esAnonimo === 1
       ? null
       : (
-          document.getElementById('idUsuario').value
-            ? Number(document.getElementById('idUsuario').value)
-            : null
+          // Ciudadano: siempre su propio USER_ID (el campo está oculto en el form)
+          USER_ROLE === 'ciudadano'
+            ? USER_ID
+            : (document.getElementById('idUsuario').value
+                ? Number(document.getElementById('idUsuario').value)
+                : null)
         )
   };
 
