@@ -1316,35 +1316,57 @@ async function toggleVoto(idReporte) {
     toast('Inicie sesión para votar', false);
     return;
   }
-  
-  const yaVoto = misVotos.has(Number(idReporte));
+
+  const idNum = Number(idReporte);
+  const yaVoto = misVotos.has(idNum);
   const method = yaVoto ? 'DELETE' : 'POST';
-  const url = yaVoto 
-    ? `../api/votos.php?idUsuario=${USER_ID}&idReporte=${idReporte}` 
+  const url = yaVoto
+    ? `../api/votos.php?idUsuario=${USER_ID}&idReporte=${idNum}`
     : `../api/votos.php`;
-    
+
   const options = { method };
   if (method === 'POST') {
     options.headers = { 'Content-Type': 'application/json' };
-    options.body = JSON.stringify({ idUsuario: USER_ID, idReporte: idReporte });
+    options.body = JSON.stringify({ idUsuario: USER_ID, idReporte: idNum });
+  }
+
+  // ── Actualización optimista del botón ───────────────────────
+  // Actualizamos el Set y el contador visualmente de inmediato
+  // para que la UI no espere el reload completo de cargar().
+  const reporteLocal = todosLosReportes.find(x => Number(x.idReporte) === idNum);
+  if (reporteLocal) {
+    if (yaVoto) {
+      reporteLocal.totalVotos = Math.max(0, Number(reporteLocal.totalVotos ?? 0) - 1);
+      misVotos.delete(idNum);
+    } else {
+      reporteLocal.totalVotos = Number(reporteLocal.totalVotos ?? 0) + 1;
+      misVotos.add(idNum);
+    }
+    renderizarTabla();
   }
 
   try {
     const res = await fetch(url, options);
     const data = await res.json();
     if (!res.ok || data.error) {
+      // Revertir cambio optimista si hubo error
+      if (reporteLocal) {
+        if (yaVoto) {
+          reporteLocal.totalVotos = Number(reporteLocal.totalVotos ?? 0) + 1;
+          misVotos.add(idNum);
+        } else {
+          reporteLocal.totalVotos = Math.max(0, Number(reporteLocal.totalVotos ?? 0) - 1);
+          misVotos.delete(idNum);
+        }
+        renderizarTabla();
+      }
       toast(data.error ?? 'No se pudo procesar el voto', false);
       return;
     }
-    
-    if (yaVoto) {
-      misVotos.delete(idReporte);
-      toast('Voto retirado correctamente', true);
-    } else {
-      misVotos.add(idReporte);
-      toast('¡Voto registrado!', true);
-    }
-    
+
+    toast(yaVoto ? 'Voto retirado correctamente' : '¡Voto registrado!', true);
+
+    // Recarga en segundo plano para sincronizar con la BD
     await cargar();
   } catch (err) {
     toast('Error al procesar voto: ' + err.message, false);
