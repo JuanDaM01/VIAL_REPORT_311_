@@ -87,8 +87,8 @@ try {
                         FROM ubicacion u
                         LEFT JOIN reporte r
                             ON r.idUbicacion = u.idUbicacion
-                        LEFT JOIN proveedor_categoria_ubicacion pcu
-                            ON pcu.idUbicacion = u.idUbicacion
+                        LEFT JOIN ticket t
+                            ON t.idReporte = r.idReporte
                         WHERE u.idUbicacion = ?
                         GROUP BY
                             u.idUbicacion,
@@ -119,13 +119,13 @@ try {
                         u.latitud,
                         u.longitud,
                         COUNT(DISTINCT r.idReporte) AS totalReportes,
-                        COUNT(DISTINCT pcu.idProveedor) AS totalProveedores,
+                        COUNT(DISTINCT t.idProveedor) AS totalProveedores,
                         0 AS totalAlertas
                     FROM ubicacion u
                     LEFT JOIN reporte r
                         ON r.idUbicacion = u.idUbicacion
-                    LEFT JOIN proveedor_categoria_ubicacion pcu
-                        ON pcu.idUbicacion = u.idUbicacion
+                    LEFT JOIN ticket t
+                        ON t.idReporte = r.idReporte
                     GROUP BY
                         u.idUbicacion,
                         u.departamento,
@@ -233,11 +233,6 @@ try {
             }
 
             $pdo->beginTransaction();
-
-            $sqlProveedor = "DELETE FROM proveedor_categoria_ubicacion
-                                WHERE idUbicacion = ?";
-            $stProveedor = $pdo->prepare($sqlProveedor);
-            $stProveedor->execute([$id]);
 
             $sqlUbicacion = "DELETE FROM ubicacion
                                 WHERE idUbicacion = ?";

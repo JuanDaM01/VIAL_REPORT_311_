@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once '../config/database.php';
+require_once '../config/session.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
@@ -92,34 +93,42 @@ function reporteTieneTicket(PDO $pdo, int $idReporte, ?int $idTicketIgnorar = nu
 
 function buscarProveedorResponsable(PDO $pdo, int $idCategoria, int $idUbicacion): ?int
 {
+    // Nuevo modelo: `proveedor` tiene `idCategoria`. La búsqueda por ubicación
+    // ya no es necesaria.
     $sql = "SELECT idProveedor
-            FROM proveedor_categoria_ubicacion
+            FROM proveedor
             WHERE idCategoria = ?
-                AND idUbicacion = ?
             LIMIT 1";
 
     $st = $pdo->prepare($sql);
-    $st->execute([$idCategoria, $idUbicacion]);
+    $st->execute([$idCategoria]);
     $idProveedor = $st->fetchColumn();
 
-    if ($idProveedor) {
-        return (int) $idProveedor;
-    }
-
-    $sqlAlterno = "SELECT idProveedor
-                    FROM proveedor_categoria_ubicacion
-                    WHERE idCategoria = ?
-                    LIMIT 1";
-
-    $st = $pdo->prepare($sqlAlterno);
-    $st->execute([$idCategoria]);
-    $idProveedorAlterno = $st->fetchColumn();
-
-    return $idProveedorAlterno ? (int) $idProveedorAlterno : null;
+    return $idProveedor ? (int) $idProveedor : null;
 }
 
-function buscarFuncionarioDisponible(PDO $pdo): ?int
+function buscarFuncionarioDisponible(PDO $pdo, ?int $idProveedor = null): ?int
 {
+    // Si se proporciona un proveedor, buscar un funcionario de ese proveedor
+    if ($idProveedor !== null) {
+        $sql = "SELECT idUsuario
+                FROM usuario
+                WHERE rol = 'funcionario'
+                    AND activo = 1
+                    AND idProveedor = ?
+                ORDER BY idUsuario
+                LIMIT 1";
+
+        $st = $pdo->prepare($sql);
+        $st->execute([$idProveedor]);
+        $idFuncionario = $st->fetchColumn();
+
+        if ($idFuncionario) {
+            return (int) $idFuncionario;
+        }
+    }
+
+    // Fallback: si no hay funcionario del proveedor, tomar el primero disponible
     $sql = "SELECT idUsuario
             FROM usuario
             WHERE rol = 'funcionario'
@@ -275,10 +284,40 @@ try {
                     LEFT JOIN usuario f
                         ON t.idFuncionario = f.idUsuario
                     LEFT JOIN usuario u
-                        ON r.idUsuario = u.idUsuario
-                    ORDER BY t.fechaAsignacion DESC";
+                        ON r.idUsuario = u.idUsuario";
 
-            $st = $pdo->query($sql);
+            // Filtro por proveedor solo si se solicita explícitamente con ?misCasos=1
+            $whereClause = "";
+            $params = [];
+            $misCasos = isset($_GET['misCasos']) ? (int) $_GET['misCasos'] : 0;
+
+            if ($misCasos === 1 && estaLogueado() && rolActual() === 'funcionario') {
+                $idProveedorFuncionario = $_SESSION['idProveedor'] ?? null;
+
+                if ($idProveedorFuncionario !== null) {
+                    try {
+                        // Obtener la categoría del proveedor del funcionario
+                        $sqlProveedor = "SELECT idCategoria FROM proveedor WHERE idProveedor = ?";
+                        $stProveedor = $pdo->prepare($sqlProveedor);
+                        $stProveedor->execute([$idProveedorFuncionario]);
+                        $proveedorData = $stProveedor->fetch();
+
+                        if ($proveedorData && $proveedorData['idCategoria'] !== null) {
+                            $whereClause = "WHERE c.idCategoria = ?";
+                            $params = [(int) $proveedorData['idCategoria']];
+                        }
+                    } catch (PDOException $e) {
+                        // Si la columna no existe o hay error, continuar sin filtro
+                        $whereClause = "";
+                        $params = [];
+                    }
+                }
+            }
+
+            $sql .= " $whereClause ORDER BY t.fechaAsignacion DESC";
+
+            $st = $pdo->prepare($sql);
+            $st->execute($params);
             responder($st->fetchAll());
 
         // =====================================================
@@ -330,7 +369,7 @@ try {
 
             $idFuncionario = !empty($data['idFuncionario'])
                 ? (int) $data['idFuncionario']
-                : buscarFuncionarioDisponible($pdo);
+                : buscarFuncionarioDisponible($pdo, $idProveedor);
 
             if ($idFuncionario !== null && !existeRegistro($pdo, 'usuario', 'idUsuario', $idFuncionario)) {
                 responder(['error' => 'El funcionario indicado no existe'], 400);
@@ -458,7 +497,7 @@ try {
 
             $idFuncionario = !empty($data['idFuncionario'])
                 ? (int) $data['idFuncionario']
-                : buscarFuncionarioDisponible($pdo);
+                : buscarFuncionarioDisponible($pdo, $idProveedor);
 
             if ($idFuncionario !== null && !existeRegistro($pdo, 'usuario', 'idUsuario', $idFuncionario)) {
                 responder(['error' => 'El funcionario indicado no existe'], 400);

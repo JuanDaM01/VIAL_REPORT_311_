@@ -53,77 +53,63 @@ function existeRegistro(PDO $pdo, string $tabla, string $campo, int $id): bool
 
 function obtenerAsignaciones(PDO $pdo, int $idProveedor): array
 {
-    $sql = "SELECT
-                pcu.idProveedor,
-                pcu.idCategoria,
-                pcu.idUbicacion,
-                c.nombre AS categoria,
-                ub.departamento,
-                ub.ciudad,
-                ub.barrio,
-                ub.direccionTexto
-            FROM proveedor_categoria_ubicacion pcu
-            INNER JOIN categoria c
-                ON pcu.idCategoria = c.idCategoria
-            INNER JOIN ubicacion ub
-                ON pcu.idUbicacion = ub.idUbicacion
-            WHERE pcu.idProveedor = ?
-            ORDER BY c.nombre, ub.ciudad, ub.barrio";
+    // Con el nuevo modelo un proveedor tiene una sola categoría (`idCategoria`).
+    $sql = "SELECT p.idCategoria, c.nombre AS categoria
+            FROM proveedor p
+            LEFT JOIN categoria c ON p.idCategoria = c.idCategoria
+            WHERE p.idProveedor = ?";
 
     $st = $pdo->prepare($sql);
     $st->execute([$idProveedor]);
 
-    return $st->fetchAll();
+    $fila = $st->fetch();
+
+    if (!$fila || $fila['idCategoria'] === null) {
+        return [];
+    }
+
+    return [[
+        'idProveedor' => $idProveedor,
+        'idCategoria' => (int) $fila['idCategoria'],
+        'categoria' => $fila['categoria'] ?? null,
+        'idUbicacion' => null
+    ]];
 }
 
 function guardarAsignaciones(PDO $pdo, int $idProveedor, array $asignaciones): void
 {
-    $sqlDelete = "DELETE FROM proveedor_categoria_ubicacion
-                    WHERE idProveedor = ?";
-    $stDelete = $pdo->prepare($sqlDelete);
-    $stDelete->execute([$idProveedor]);
-
+    // Ahora almacenamos una sola categoría en la tabla `proveedor` (campo `idCategoria`).
     if (empty($asignaciones)) {
+        $sql = "UPDATE proveedor SET idCategoria = NULL WHERE idProveedor = ?";
+        $st = $pdo->prepare($sql);
+        $st->execute([$idProveedor]);
         return;
     }
 
-    $sqlInsert = "INSERT INTO proveedor_categoria_ubicacion
-                    (idProveedor, idCategoria, idUbicacion)
-                    VALUES (?, ?, ?)";
-
-    $stInsert = $pdo->prepare($sqlInsert);
-    $registradas = [];
+    // Tomamos la primera asignación válida que incluya `idCategoria`.
+    $idCategoria = null;
 
     foreach ($asignaciones as $asignacion) {
-        if (empty($asignacion['idCategoria']) || empty($asignacion['idUbicacion'])) {
-            continue;
+        if (!empty($asignacion['idCategoria'])) {
+            $idCategoria = (int) $asignacion['idCategoria'];
+            break;
         }
-
-        $idCategoria = (int) $asignacion['idCategoria'];
-        $idUbicacion = (int) $asignacion['idUbicacion'];
-
-        if (!existeRegistro($pdo, 'categoria', 'idCategoria', $idCategoria)) {
-            responder(['error' => 'Una de las categorías asignadas no existe'], 400);
-        }
-
-        if (!existeRegistro($pdo, 'ubicacion', 'idUbicacion', $idUbicacion)) {
-            responder(['error' => 'Una de las ubicaciones asignadas no existe'], 400);
-        }
-
-        $clave = $idCategoria . '-' . $idUbicacion;
-
-        if (isset($registradas[$clave])) {
-            continue;
-        }
-
-        $registradas[$clave] = true;
-
-        $stInsert->execute([
-            $idProveedor,
-            $idCategoria,
-            $idUbicacion
-        ]);
     }
+
+    if ($idCategoria === null) {
+        $sql = "UPDATE proveedor SET idCategoria = NULL WHERE idProveedor = ?";
+        $st = $pdo->prepare($sql);
+        $st->execute([$idProveedor]);
+        return;
+    }
+
+    if (!existeRegistro($pdo, 'categoria', 'idCategoria', $idCategoria)) {
+        responder(['error' => 'La categoría indicada no existe'], 400);
+    }
+
+    $sql = "UPDATE proveedor SET idCategoria = ? WHERE idProveedor = ?";
+    $st = $pdo->prepare($sql);
+    $st->execute([$idCategoria, $idProveedor]);
 }
 
 try {
@@ -177,12 +163,10 @@ try {
                         p.correo,
                         p.nivel,
                         p.solucionesResueltas,
-                        COUNT(DISTINCT pcu.idCategoria) AS totalCategorias,
-                        COUNT(DISTINCT pcu.idUbicacion) AS totalUbicaciones,
+                        (p.idCategoria IS NOT NULL) AS totalCategorias,
+                        0 AS totalUbicaciones,
                         COUNT(DISTINCT t.idTicket) AS totalTickets
                     FROM proveedor p
-                    LEFT JOIN proveedor_categoria_ubicacion pcu
-                        ON p.idProveedor = pcu.idProveedor
                     LEFT JOIN ticket t
                         ON t.idProveedor = p.idProveedor
                     GROUP BY
@@ -296,11 +280,6 @@ try {
             }
 
             $pdo->beginTransaction();
-
-            $sqlRelaciones = "DELETE FROM proveedor_categoria_ubicacion
-                                WHERE idProveedor = ?";
-            $stRelaciones = $pdo->prepare($sqlRelaciones);
-            $stRelaciones->execute([$id]);
 
             $sqlTickets = "UPDATE ticket
                             SET idProveedor = NULL
