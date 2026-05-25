@@ -80,7 +80,7 @@ CREATE TABLE usuario (
     tipoRegistro          ENUM('local','google','facebook')               NOT NULL DEFAULT 'local',
     cantidadReportes      INT UNSIGNED NOT NULL DEFAULT 0,
 
-    -- Solo funcionario / administrador
+    -- Solo funcionario (subtipo Funcionario en el ER)
     cargo                 VARCHAR(100),
     nivelAcceso           TINYINT UNSIGNED,
     idProveedor           INT DEFAULT NULL,
@@ -379,7 +379,7 @@ INSERT INTO usuario
   (nombres,apellido_1,apellido_2,email,contrasena,telefono,edad,rol,tipoRegistro,cargo,nivelAcceso,idProveedor,estadoCuenta,fechaAsignacionRol)
 VALUES
   ('Luis', 'Pérez', 'Mora', 'luis.funcionario@email.com',MD5('pass5'),'3125551234',31,'funcionario',  'local','Inspector vial',2,1,NULL,NULL),
-  ('Sofía','Herrera','Ríos','sofia.admin@email.com',     MD5('pass6'),'3187772345',27,'administrador','local','Administradora del sistema',5,NULL,'activo',NOW());
+  ('Sofía','Herrera','Ríos','sofia.admin@email.com',     MD5('pass6'),'3187772345',27,'administrador','local',NULL,NULL,NULL,'activo',NOW());
 
 -- Reportes
 INSERT INTO reporte (titulo, descripcion, estado, esAnonimo, totalVotos, idUsuario, idUbicacion, idCategoria)

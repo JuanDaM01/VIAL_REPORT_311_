@@ -238,10 +238,15 @@ try {
             $idProveedor = null;
             $fechaAsignacionRol = null;
 
-            if ($rol === 'funcionario' || $rol === 'administrador') {
-                $cargo = $data['cargo'] ?? null;
+            if ($rol === 'funcionario') {
+                $cargo = isset($data['cargo']) ? trim((string) $data['cargo']) : null;
+                $cargo = $cargo !== '' ? $cargo : null;
                 $nivelAcceso = $data['nivelAcceso'] ?? null;
                 $idProveedor = !empty($data['idProveedor']) ? (int) $data['idProveedor'] : null;
+
+                if ($cargo === null) {
+                    responder(['error' => 'El cargo es obligatorio para funcionarios'], 400);
+                }
             }
 
             if ($rol === 'administrador') {
@@ -362,10 +367,15 @@ try {
             $idProveedor = null;
             $fechaAsignacionRol = $data['fechaAsignacionRol'] ?? null;
 
-            if ($rol === 'funcionario' || $rol === 'administrador') {
-                $cargo = $data['cargo'] ?? null;
+            if ($rol === 'funcionario') {
+                $cargo = isset($data['cargo']) ? trim((string) $data['cargo']) : null;
+                $cargo = $cargo !== '' ? $cargo : null;
                 $nivelAcceso = $data['nivelAcceso'] ?? null;
                 $idProveedor = !empty($data['idProveedor']) ? (int) $data['idProveedor'] : null;
+
+                if ($cargo === null) {
+                    responder(['error' => 'El cargo es obligatorio para funcionarios'], 400);
+                }
             }
 
             if ($rol === 'administrador') {

@@ -36,7 +36,7 @@
           <th>Registro</th>
           <th>Estado</th>
           <th>Reportes</th>
-          <th>Cargo / Acceso</th>
+          <th>Cargo (funcionario)</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -201,7 +201,7 @@ function textoNombre(u) {
 }
 
 function textoCargo(u) {
-  if (u.rol === 'ciudadano') {
+  if (u.rol !== 'funcionario') {
     return '—';
   }
 
@@ -373,8 +373,10 @@ function controlarRol() {
   }
 
   if (rol === 'administrador') {
-    bloqueFuncionario.style.display = 'flex';
+    bloqueFuncionario.style.display = 'none';
     bloqueAdministrador.style.display = 'flex';
+    document.getElementById('cargo').value = '';
+    document.getElementById('nivelAcceso').value = '';
 
     if (!document.getElementById('estadoCuenta').value) {
       document.getElementById('estadoCuenta').value = 'activo';
@@ -412,14 +414,15 @@ function construirBody() {
     tipoRegistro: document.getElementById('tipoRegistro').value,
     activo: Number(document.getElementById('activo').value),
 
-    cargo: document.getElementById('cargo').value.trim() || null,
-
-    nivelAcceso: document.getElementById('nivelAcceso').value
-      ? Number(document.getElementById('nivelAcceso').value)
-      : null,
-
     estadoCuenta: document.getElementById('estadoCuenta').value || null
   };
+
+  if (body.rol === 'funcionario') {
+    body.cargo = document.getElementById('cargo').value.trim() || null;
+    body.nivelAcceso = document.getElementById('nivelAcceso').value
+      ? Number(document.getElementById('nivelAcceso').value)
+      : null;
+  }
 
   if (!id || contrasena) {
     body.contrasena = contrasena;
@@ -449,8 +452,8 @@ function validarFormulario(body) {
     return false;
   }
 
-  if ((body.rol === 'funcionario' || body.rol === 'administrador') && !body.cargo) {
-    toast('El cargo es recomendable para funcionarios y administradores', false);
+  if (body.rol === 'funcionario' && !body.cargo) {
+    toast('El cargo es obligatorio para funcionarios', false);
     return false;
   }
 
